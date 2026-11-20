@@ -11,7 +11,9 @@ This track builds a pipeline in two states:
 GitHub renders the Mermaid diagrams below. For an **editable draw.io diagram
 with the real tool logos**, open [`architecture.drawio`](architecture.drawio)
 at [app.diagrams.net](https://app.diagrams.net) (File → Open, or drag the file
-onto the canvas).
+onto the canvas). It has **two pages** — tab **1 · Plain CI/CD** (where you
+start) and tab **2 · DevSecOps** (where you end up) — so the progression is
+clear.
 
 ---
 
