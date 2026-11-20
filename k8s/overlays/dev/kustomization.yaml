@@ -1,0 +1,26 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: dev
+resources:
+  - ../../base
+labels:
+  - pairs:
+      app.kubernetes.io/environment: dev
+replicas:
+  - name: kubenotes
+    count: 1
+configMapGenerator:
+  - name: kubenotes
+    literals:
+      - APP_ENV=dev
+      - APP_VERSION=local       # the pipeline replaces this with the git SHA
+images:
+  - name: kubenotes
+    newName: localhost:5001/kubenotes
+    newTag: local               # the pipeline replaces this with the image digest
+patches:
+  - target: { kind: Service, name: kubenotes }
+    patch: |
+      - op: replace
+        path: /spec/ports/0/nodePort
+        value: 30080

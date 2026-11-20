@@ -1,0 +1,21 @@
+# Only HTTP on 8080 may reach the app; it may only talk to DNS.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: kubenotes
+  labels:
+    app.kubernetes.io/name: kubenotes
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: kubenotes
+  policyTypes: ["Ingress", "Egress"]
+  ingress:
+    - ports:
+        - port: 8080
+  egress:
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP

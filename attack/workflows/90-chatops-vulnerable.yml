@@ -1,0 +1,38 @@
+# ======================================================================
+# ATTACK LAB (Part 2) -- a VULNERABLE workflow, added on purpose.
+#
+# It is a convenience "ChatOps" bot: open an issue whose title starts with
+# /status and it reports cluster status back. To do that it keeps the admin
+# kubeconfig in the environment. The bug (OWASP CICD-SEC-4, Poisoned
+# Pipeline Execution) is that it drops the attacker-controlled issue TITLE
+# straight into a shell. A crafted title runs commands on the self-hosted
+# runner -- your laptop -- with that kubeconfig in reach.
+#
+# Lab 08 walks through exploiting this. Lab 13 deletes it and explains why
+# the fixed pipeline never needs a pattern like this.
+# ======================================================================
+name: 90 - ChatOps (VULNERABLE - attack lab only)
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+
+jobs:
+  chatops:
+    if: startsWith(github.event.issue.title, '/status')
+    runs-on: [self-hosted, devsecops]
+    steps:
+      - name: Handle the command
+        env:
+          KUBECONFIG_ADMIN: ${{ secrets.KUBECONFIG_ADMIN }}
+        # (!!!) THE BUG: github.event.issue.title is interpolated by Actions
+        #       into the script BEFORE the shell runs. A title such as
+        #         /status"; <attacker commands> ; echo "
+        #       executes <attacker commands> on the runner.
+        run: |
+          echo "Running command: ${{ github.event.issue.title }}"
+          echo "$KUBECONFIG_ADMIN" > /tmp/kc && export KUBECONFIG=/tmp/kc
+          kubectl -n dev get pods || true

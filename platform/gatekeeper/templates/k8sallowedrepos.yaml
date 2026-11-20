@@ -1,0 +1,41 @@
+# Images must come from an approved registry.
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: k8sallowedrepos
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sAllowedRepos
+      validation:
+        openAPIV3Schema:
+          type: object
+          properties:
+            repos:
+              type: array
+              items: { type: string }
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8sallowedrepos
+
+        # Works for Pods and for anything with a pod template (Deployments...).
+        pod_spec := s {
+          input.review.object.kind == "Pod"
+          s := input.review.object.spec
+        }
+        pod_spec := s {
+          input.review.object.kind != "Pod"
+          s := input.review.object.spec.template.spec
+        }
+        containers[c] { c := pod_spec.containers[_] }
+        containers[c] { c := pod_spec.initContainers[_] }
+        name := sprintf("%s/%s", [input.review.object.kind, input.review.object.metadata.name])
+
+        violation[{"msg": msg}] {
+          c := containers[_]
+          not any_prefix(c.image)
+          msg := sprintf("[IMG-001] %s: image %q is not from an approved registry %v", [name, c.image, input.parameters.repos])
+        }
+        any_prefix(image) { startswith(image, input.parameters.repos[_]) }

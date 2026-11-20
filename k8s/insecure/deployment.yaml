@@ -1,0 +1,68 @@
+# INSECURE BY DESIGN -- this is the Part 1 deployment the attack lab targets.
+# Do not copy these settings into anything real. Every line marked (!) is a
+# mistake that Part 3 fixes. Side by side with k8s/base/deployment.yaml you
+# can read the whole hardening story.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kubenotes
+---
+# (!) The app is given broad rights "so it just works". A token for this
+#     ServiceAccount is mounted into the pod, so anyone who reaches the pod
+#     inherits these rights. Part 3 removes the token and these rules.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: kubenotes-toobroad
+rules:
+  - apiGroups: ["", "apps"]
+    resources: ["*"]
+    verbs: ["*"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kubenotes-toobroad
+subjects:
+  - kind: ServiceAccount
+    name: kubenotes
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kubenotes-toobroad
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubenotes
+  labels:
+    app.kubernetes.io/name: kubenotes
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kubenotes
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: kubenotes
+    spec:
+      serviceAccountName: kubenotes
+      # automountServiceAccountToken defaults to true (!): the SA token above
+      # lands in the pod at /var/run/secrets/kubernetes.io/serviceaccount/token.
+      containers:
+        - name: app
+          image: localhost:5001/kubenotes:dev   # (!) mutable tag, not a digest
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: APP_ENV
+              value: dev
+            - name: APP_VERSION
+              value: insecure
+          # (!) no securityContext at all: runs as root (uid 0), root
+          #     filesystem is writable, every Linux capability is kept,
+          #     privilege escalation is allowed, no seccomp profile.
+          # (!) no resource limits: a miner dropped in here can eat the node.
+          # (!) no readiness/liveness probes.

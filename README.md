@@ -1,0 +1,83 @@
+# DevSecOps, end to end, on your own machine
+
+Build a CI/CD pipeline, **break it like an attacker**, turn it into a
+security-first DevSecOps pipeline, then make it **detect and respond** to the
+next attack — with AI doing the triage. Everything runs locally on a real
+Kubernetes cluster. No cloud account, no bill.
+
+```
+ build  ─────────▶  attack  ─────────▶  govern  ─────────▶  detect & respond
+ (Part 1)           (Part 2)           (Part 3)            (Part 4)
+ plain CI/CD        own the pipeline   close every hole    audit log + AI
+                    & the pod          OIDC · PSA · OPA    incident + build doctor
+```
+
+A student clones this into their own repo and works through **22 labs** and
+**10 case scenarios**, guided at every step.
+
+## Why it's built this way
+
+- **Attack before defend.** You exploit the insecure pipeline (RCE on the
+  runner → stolen cluster credential → pod takeover → image swap) *before* you
+  learn the controls, so each control answers a real attack you've seen.
+- **Real, never simulated.** A kind cluster, a local registry, a self-hosted
+  runner, real scanners (Trivy, Gitleaks, Semgrep, OPA, ZAP), real admission
+  control (Gatekeeper), real **OAuth2/OIDC federation** between GitHub and the
+  Kubernetes API, real image signing (cosign).
+- **CI == local.** Every gate is a `make` target that runs the same pinned
+  container locally and in GitHub Actions. "Green on my laptop" means "green in
+  CI".
+- **AIOps that earns its place.** Claude diagnoses failed builds, prioritises
+  scanner findings, and writes incident reports from the audit log — triage at
+  machine speed, with the human still deciding.
+
+## What a learner comes away knowing
+
+- the full CI/CD lifecycle and where each stage is attacked (OWASP CI/CD Top 10);
+- **security-first architecture**: least privilege, short-lived federated
+  identity, immutable signed artifacts, admission control, defence in depth;
+- **detection & response**: audit logging, runtime detection, and LLM-assisted
+  triage and incident handling.
+
+## Start here
+
+```bash
+# turn this folder into your own git repo (workflows must live at the repo root)
+cicd/scripts/new-lab-repo.sh ~/devsecops-lab
+cd ~/devsecops-lab && gh repo create devsecops-lab --private --source . --push
+make up              # local registry + kind cluster
+```
+
+Then open **[`labs/README.md`](labs/README.md)** and follow Part 1 → 4.
+Browse **[`attack/`](attack/README.md)** for the red-team lab and
+**[`scenarios/`](scenarios/README.md)** for break-fix-detect case studies.
+
+## Tooling (all pinned in `tools.env`, all run as containers)
+
+| Stage | Tool |
+|-------|------|
+| Secrets | Gitleaks |
+| SAST | Semgrep, Bandit |
+| SCA (dependencies & image) | Trivy + CycloneDX SBOM |
+| IaC / Dockerfile / policy | Hadolint, Trivy config, OPA Conftest |
+| Admission control | OPA Gatekeeper |
+| Identity | GitHub OIDC → Kubernetes structured authentication (federation) |
+| Supply chain | cosign (keyless sign + verify) |
+| DAST | OWASP ZAP baseline |
+| Pipeline security | actionlint, zizmor, pinned actions, least-priv tokens |
+| Detection | Kubernetes API audit log, Gatekeeper audit, (optional) Falco |
+| AIOps | Claude (`claude-opus-5-5`) build doctor, security triage, incident doctor |
+
+You install only **docker, kind, kubectl, git, make, gh**.
+
+## Prerequisites
+
+Docker (Desktop or engine), ~8 GB RAM free, kind ≥ 0.33, kubectl, GitHub CLI.
+For the AI labs, a Claude credential (`ANTHROPIC_API_KEY` or `ant auth login`) —
+without one, the AI tools print the prompt they would send, so you can still
+follow along.
+
+---
+
+Part of [KubeAcademy](../README.md). These are deliberately-vulnerable teaching
+scenarios: run them only against your own local cluster.

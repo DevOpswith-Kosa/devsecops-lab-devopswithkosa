@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubenotes
+  labels:
+    app.kubernetes.io/name: kubenotes
+spec:
+  replicas: 1
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kubenotes
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: kubenotes
+    spec:
+      automountServiceAccountToken: false     # the app never calls the Kubernetes API
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: app
+          image: kubenotes                     # replaced with registry/name@digest by the pipeline
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: APP_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: kubenotes
+                  key: APP_ENV
+            - name: APP_VERSION
+              valueFrom:
+                configMapKeyRef:
+                  name: kubenotes
+                  key: APP_VERSION
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+          readinessProbe:
+            httpGet: { path: /readyz, port: http }
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 10
+            failureThreshold: 3
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp                  # sqlite db + gunicorn heartbeat files
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi

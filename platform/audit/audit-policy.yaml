@@ -1,0 +1,45 @@
+# What the Kubernetes API server writes to the audit log. Tuned for this lab:
+# quiet about routine reads, loud about the exact moves the attack lab makes.
+# Part 4 reads this log to DETECT those moves.
+apiVersion: audit.k8s.io/v1
+kind: Policy
+omitStages: ["RequestReceived"]
+rules:
+  # --- high signal: the A2 pod-takeover moves -------------------------
+  # Someone opening a shell in a pod. Rare in normal operation; the first
+  # thing an attacker does. Capture the full request.
+  - level: RequestResponse
+    verbs: ["create", "get"]
+    resources:
+      - group: ""
+        resources: ["pods/exec", "pods/attach", "pods/portforward"]
+  # Reading or listing Secrets.
+  - level: Request
+    resources:
+      - group: ""
+        resources: ["secrets"]
+  # Creating or deleting pods (rogue-miner), and any RBAC change.
+  - level: Request
+    verbs: ["create", "delete"]
+    resources:
+      - group: ""
+        resources: ["pods"]
+  - level: RequestResponse
+    resources:
+      - group: "rbac.authorization.k8s.io"
+        resources: ["roles", "rolebindings", "clusterroles", "clusterrolebindings"]
+  # --- who is acting: the GitHub OIDC identities ----------------------
+  # Everything done by a pipeline identity, so you can see (and later alert
+  # on) a dev-environment token doing anything in prod.
+  - level: Metadata
+    userGroups: ["github-actions"]
+  # --- keep the noise down --------------------------------------------
+  - level: None
+    users: ["system:kube-scheduler", "system:kube-controller-manager", "system:apiserver"]
+  - level: None
+    userGroups: ["system:nodes", "system:serviceaccounts:kube-system", "system:serviceaccounts:gatekeeper-system"]
+  - level: None
+    verbs: ["get", "list", "watch"]
+  # Everything else that changes state, at metadata level.
+  - level: Metadata
+    omitStages: ["RequestReceived"]

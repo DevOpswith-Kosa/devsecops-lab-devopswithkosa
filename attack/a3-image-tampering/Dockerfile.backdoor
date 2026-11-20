@@ -1,0 +1,7 @@
+# A backdoored build of kubenotes: identical, plus a hidden endpoint that
+# runs shell commands. Stands in for any malicious image an attacker pushes.
+FROM localhost:5001/kubenotes:dev
+# (we only append a file and change the entrypoint note; the real app code is
+#  untouched so it still looks healthy)
+USER 0
+RUN printf '%s\n' "BACKDOOR: this image was swapped under the same tag" > /BACKDOOR

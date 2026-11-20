@@ -1,0 +1,73 @@
+# Where each policy applies. enforcementAction: deny rejects the request;
+# change it to "warn" or "dryrun" to roll a new policy out gently.
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sAllowedRepos
+metadata:
+  name: only-local-registry
+spec:
+  enforcementAction: deny
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+      - apiGroups: ["apps"]
+        kinds: ["Deployment", "StatefulSet", "DaemonSet"]
+    namespaces: ["dev", "prod"]
+  parameters:
+    repos: ["localhost:5001/"]
+---
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sDisallowLatest
+metadata:
+  name: no-latest-tag
+spec:
+  enforcementAction: deny
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+      - apiGroups: ["apps"]
+        kinds: ["Deployment", "StatefulSet", "DaemonSet"]
+    namespaces: ["dev", "prod"]
+---
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sRequireNonRoot
+metadata:
+  name: no-root-containers
+spec:
+  enforcementAction: deny
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+      - apiGroups: ["apps"]
+        kinds: ["Deployment", "StatefulSet", "DaemonSet"]
+    namespaces: ["dev", "prod"]
+---
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sRequireLimits
+metadata:
+  name: require-limits
+spec:
+  enforcementAction: deny
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+      - apiGroups: ["apps"]
+        kinds: ["Deployment", "StatefulSet", "DaemonSet"]
+    namespaces: ["dev", "prod"]
+---
+# Production is stricter: only immutable digests, so nobody can
+# "kubectl set image ...:hotfix" around the pipeline.
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sRequireDigest
+metadata:
+  name: prod-digest-only
+spec:
+  enforcementAction: deny
+  match:
+    kinds:
+      - apiGroups: ["apps"]
+        kinds: ["Deployment", "StatefulSet", "DaemonSet"]
+    namespaces: ["prod"]

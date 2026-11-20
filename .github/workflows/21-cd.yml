@@ -1,0 +1,91 @@
+# ======================================================================
+# PART 3 -- secure CD. Deploys by DIGEST, over GitHub OIDC (no stored
+# kubeconfig), after verifying the image signature. dev is automatic;
+# prod waits for a human via a GitHub Environment protection rule.
+# ======================================================================
+name: 21 - CD (secure, OIDC)
+
+on:
+  # zizmor flags workflow_run as a "dangerous trigger": it runs with repo
+  # write scope in the default-branch context. We accept it here because the
+  # trigger is constrained to CI *success* on *main*, the top-level token is
+  # read-only, and deploy auth is a short-lived OIDC token, not a secret.
+  # That is how you TRIAGE a finding instead of blindly silencing it.
+  workflow_run: # zizmor: ignore[dangerous-triggers]
+    workflows: ["20 - CI (secure)"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-dev:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: [self-hosted, devsecops]
+    environment: dev                    # the OIDC claim the cluster checks
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Resolve the image digest built by CI
+        id: img
+        run: |
+          SHA=$(git rev-parse --short=12 HEAD)
+          make build push >/dev/null
+          digest=$(docker inspect --format '{{index .RepoDigests 0}}' "localhost:5001/kubenotes:$SHA" | cut -d@ -f2)
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+      - name: Verify the signature
+        env:
+          DIGEST: ${{ steps.img.outputs.digest }}
+          REPO: ${{ github.repository }}
+        run: ci/verify.sh "localhost:5001/kubenotes@$DIGEST" "$REPO"
+      - name: Deploy to dev over OIDC (no stored credential)
+        env:
+          KIND_API_SERVER: ${{ vars.KIND_API_SERVER }}
+          KIND_AUDIENCE: ${{ vars.KIND_AUDIENCE }}
+          KIND_CA_DATA: ${{ vars.KIND_CA_DATA }}
+          DIGEST: ${{ steps.img.outputs.digest }}
+        run: |
+          SHA=$(git rev-parse --short=12 HEAD)
+          eval "$(ci/oidc-kubeconfig.sh)"
+          ci/render.sh dev "$DIGEST" "$SHA" | kubectl apply -f -
+          kubectl -n dev rollout status deploy/kubenotes --timeout=120s
+
+  deploy-prod:
+    needs: deploy-dev
+    runs-on: [self-hosted, devsecops]
+    environment: prod                   # add a required reviewer on this env
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Resolve the image digest
+        id: img
+        run: |
+          SHA=$(git rev-parse --short=12 HEAD)
+          make build >/dev/null
+          digest=$(docker inspect --format '{{index .RepoDigests 0}}' "localhost:5001/kubenotes:$SHA" | cut -d@ -f2)
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+      - name: Verify the signature
+        env:
+          DIGEST: ${{ steps.img.outputs.digest }}
+          REPO: ${{ github.repository }}
+        run: ci/verify.sh "localhost:5001/kubenotes@$DIGEST" "$REPO"
+      - name: Deploy to prod over OIDC
+        env:
+          KIND_API_SERVER: ${{ vars.KIND_API_SERVER }}
+          KIND_AUDIENCE: ${{ vars.KIND_AUDIENCE }}
+          KIND_CA_DATA: ${{ vars.KIND_CA_DATA }}
+          DIGEST: ${{ steps.img.outputs.digest }}
+        run: |
+          SHA=$(git rev-parse --short=12 HEAD)
+          eval "$(ci/oidc-kubeconfig.sh)"
+          ci/render.sh prod "$DIGEST" "$SHA" | kubectl apply -f -
+          kubectl -n prod rollout status deploy/kubenotes --timeout=120s

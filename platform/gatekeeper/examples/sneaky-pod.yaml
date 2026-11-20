@@ -1,0 +1,19 @@
+# Passes Pod Security "restricted" (non-root, no privileges, seccomp)...
+# ...but uses an image from Docker Hub with the :latest tag and no limits.
+# Pod Security alone would let this in. Gatekeeper should not.
+#   kubectl -n dev apply -f platform/gatekeeper/examples/sneaky-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sneaky
+spec:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 101
+    seccompProfile: { type: RuntimeDefault }
+  containers:
+    - name: web
+      image: nginxinc/nginx-unprivileged:latest
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities: { drop: ["ALL"] }

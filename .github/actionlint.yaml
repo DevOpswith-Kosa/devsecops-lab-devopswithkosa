@@ -1,0 +1,5 @@
+# Tell actionlint that "devsecops" is a valid self-hosted runner label,
+# so real findings (like script injection) are not lost in label noise.
+self-hosted-runner:
+  labels:
+    - devsecops

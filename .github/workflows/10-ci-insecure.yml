@@ -1,0 +1,51 @@
+# ======================================================================
+# PART 1 -- a plain CI/CD pipeline. It works. It is also insecure in
+# several ways on purpose; Part 2 (the attack lab) exploits them and
+# Part 3 fixes them. Every line marked (!) is a deliberate weakness.
+# ======================================================================
+name: 10 - CI/CD (insecure, Part 1)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# (!) The default GITHUB_TOKEN is left at its broad default. A compromised
+#     step could push commits, publish packages, or edit issues.
+permissions: write-all
+
+jobs:
+  deliver:
+    # (!) Runs on the self-hosted runner -- i.e. on your laptop, with your
+    #     files and your cluster within reach of any step.
+    runs-on: [self-hosted, devsecops]
+    steps:
+      # (!) Actions pinned to a moving tag, not a commit SHA. Whoever controls
+      #     the tag controls what runs on your machine.
+      - uses: actions/checkout@v5
+
+      - name: Test
+        run: |
+          pip install -q -r app/requirements-dev.txt
+          python -m pytest -q app/tests
+
+      - name: Build and push to the local registry
+        run: |
+          SHA=$(git rev-parse --short=12 HEAD)
+          docker build -t localhost:5001/kubenotes:dev -t "localhost:5001/kubenotes:$SHA" app
+          docker push localhost:5001/kubenotes:dev
+          docker push "localhost:5001/kubenotes:$SHA"
+
+      # (!) The cluster is reached with a long-lived admin kubeconfig kept as
+      #     a GitHub secret. It never expires, it is full cluster-admin, and
+      #     it is one `echo` away from leaving the machine. Part 3 replaces
+      #     the whole idea with short-lived GitHub OIDC tokens.
+      - name: Deploy to dev
+        env:
+          KUBECONFIG_ADMIN: ${{ secrets.KUBECONFIG_ADMIN }}
+        run: |
+          echo "$KUBECONFIG_ADMIN" > /tmp/kubeconfig
+          export KUBECONFIG=/tmp/kubeconfig
+          kubectl -n dev apply -f k8s/insecure/
+          kubectl -n dev set image deploy/kubenotes app=localhost:5001/kubenotes:dev
+          kubectl -n dev rollout status deploy/kubenotes --timeout=120s

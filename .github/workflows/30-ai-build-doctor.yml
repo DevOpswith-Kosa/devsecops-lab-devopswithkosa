@@ -1,0 +1,33 @@
+# Part 4 -- when CI fails, an AI reviewer posts a root-cause + fix comment.
+# Needs repo secret ANTHROPIC_API_KEY. Read-only except for opening an issue.
+name: 30 - AI build doctor
+
+on:
+  workflow_run:
+    workflows: ["20 - CI (secure)"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    if: github.event.workflow_run.conclusion == 'failure'
+    runs-on: [self-hosted, devsecops]
+    permissions:
+      contents: read
+      issues: write          # to open an issue with the diagnosis
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install the Anthropic SDK
+        run: pip install --quiet anthropic==2.10.0
+      - name: Diagnose the failing run
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          gh run view "$RUN_ID" --log-failed > /tmp/failed.log || true
+          ai/build-doctor.py --log /tmp/failed.log --alert

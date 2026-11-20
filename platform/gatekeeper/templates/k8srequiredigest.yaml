@@ -1,0 +1,34 @@
+# Images must be referenced by digest (registry/name@sha256:...).
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: k8srequiredigest
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sRequireDigest
+
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8srequiredigest
+
+        # Works for Pods and for anything with a pod template (Deployments...).
+        pod_spec := s {
+          input.review.object.kind == "Pod"
+          s := input.review.object.spec
+        }
+        pod_spec := s {
+          input.review.object.kind != "Pod"
+          s := input.review.object.spec.template.spec
+        }
+        containers[c] { c := pod_spec.containers[_] }
+        containers[c] { c := pod_spec.initContainers[_] }
+        name := sprintf("%s/%s", [input.review.object.kind, input.review.object.metadata.name])
+
+        violation[{"msg": msg}] {
+          c := containers[_]
+          not contains(c.image, "@sha256:")
+          msg := sprintf("[IMG-003] %s: image %q must be referenced by digest; only the pipeline deploys here", [name, c.image])
+        }

@@ -1,0 +1,20 @@
+# Config for gitleaks (secret scanning). Uses the full default ruleset and
+# adds an allowlist for files this lab GENERATES at runtime (never committed)
+# and for the teaching material that quotes well-known example keys on purpose.
+title = "kubenotes devsecops lab"
+[extend]
+useDefault = true
+
+[allowlist]
+description = "generated runtime artifacts and documented example secrets"
+paths = [
+  '''\.local/.*''',          # cluster CA, rendered configs, the audit log
+  '''reports/.*''',          # scanner output
+  '''attack/loot/.*''',      # exfiltrated-in-the-lab data (your own)
+  '''platform/runner/actions-runner/.*''',
+]
+# The AWS documentation example keys used to TEACH secret scanning (scenario 01).
+regexes = [
+  '''AKIAIOSFODNN7EXAMPLE''',
+  '''wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY''',
+]

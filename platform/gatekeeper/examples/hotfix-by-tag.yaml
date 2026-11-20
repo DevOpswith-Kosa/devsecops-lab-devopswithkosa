@@ -1,0 +1,27 @@
+# A "quick hotfix" applied by hand to prod with a tag instead of a digest.
+# Allowed in dev. Rejected in prod: only the pipeline deploys there.
+#   kubectl -n prod apply -f platform/gatekeeper/examples/hotfix-by-tag.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hotfix
+  labels: { app.kubernetes.io/name: hotfix }
+spec:
+  selector:
+    matchLabels: { app.kubernetes.io/name: hotfix }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: hotfix }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: app
+          image: localhost:5001/kubenotes:hotfix
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+          resources:
+            limits: { cpu: 100m, memory: 64Mi }

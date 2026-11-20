@@ -1,0 +1,35 @@
+# Containers must not run as root.
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: k8srequirenonroot
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sRequireNonRoot
+
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8srequirenonroot
+
+        # Works for Pods and for anything with a pod template (Deployments...).
+        pod_spec := s {
+          input.review.object.kind == "Pod"
+          s := input.review.object.spec
+        }
+        pod_spec := s {
+          input.review.object.kind != "Pod"
+          s := input.review.object.spec.template.spec
+        }
+        containers[c] { c := pod_spec.containers[_] }
+        containers[c] { c := pod_spec.initContainers[_] }
+        name := sprintf("%s/%s", [input.review.object.kind, input.review.object.metadata.name])
+
+        violation[{"msg": msg}] {
+          c := containers[_]
+          not pod_spec.securityContext.runAsNonRoot
+          not c.securityContext.runAsNonRoot
+          msg := sprintf("[SEC-001] %s: container %q may run as root; set runAsNonRoot: true", [name, c.name])
+        }

@@ -1,0 +1,35 @@
+# Containers must declare CPU and memory limits.
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: k8srequirelimits
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sRequireLimits
+
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8srequirelimits
+
+        # Works for Pods and for anything with a pod template (Deployments...).
+        pod_spec := s {
+          input.review.object.kind == "Pod"
+          s := input.review.object.spec
+        }
+        pod_spec := s {
+          input.review.object.kind != "Pod"
+          s := input.review.object.spec.template.spec
+        }
+        containers[c] { c := pod_spec.containers[_] }
+        containers[c] { c := pod_spec.initContainers[_] }
+        name := sprintf("%s/%s", [input.review.object.kind, input.review.object.metadata.name])
+
+        violation[{"msg": msg}] {
+          c := pod_spec.containers[_]
+          r := {"cpu", "memory"}[_]
+          not c.resources.limits[r]
+          msg := sprintf("[REL-001] %s: container %q has no %s limit", [name, c.name, r])
+        }
