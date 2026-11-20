@@ -30,6 +30,8 @@ jobs:
         run: make scan
       - name: Pipeline hygiene (actionlint + zizmor)
         run: make scan-workflows
+      - name: "K8s config posture (Kubescape: NSA + MITRE)"
+        run: make scan-config
       - name: Upload scan reports
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

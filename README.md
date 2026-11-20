@@ -48,6 +48,10 @@ cd ~/devsecops-lab && gh repo create devsecops-lab --private --source . --push
 make up              # local registry + kind cluster
 ```
 
+See **[`docs/architecture.md`](docs/architecture.md)** for the pipeline
+architecture — from the plain Part 1 flow to the full DevSecOps pipeline with
+every gate.
+
 Then open **[`labs/README.md`](labs/README.md)** and follow Part 1 → 4.
 Browse **[`attack/`](attack/README.md)** for the red-team lab and
 **[`scenarios/`](scenarios/README.md)** for break-fix-detect case studies.
@@ -60,6 +64,8 @@ Browse **[`attack/`](attack/README.md)** for the red-team lab and
 | SAST | Semgrep, Bandit |
 | SCA (dependencies & image) | Trivy + CycloneDX SBOM |
 | IaC / Dockerfile / policy | Hadolint, Trivy config, OPA Conftest |
+| K8s config posture | Kubescape (NSA + MITRE frameworks) |
+| Cluster benchmark | kube-bench (CIS Kubernetes Benchmark) |
 | Admission control | OPA Gatekeeper |
 | Identity | GitHub OIDC → Kubernetes structured authentication (federation) |
 | Supply chain | cosign (keyless sign + verify) |

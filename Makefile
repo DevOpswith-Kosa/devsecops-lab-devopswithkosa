@@ -124,6 +124,23 @@ dast: | $(REPORTS) ## OWASP ZAP baseline scan against the app running in ENV=dev
 	  zap-baseline.py -t "http://$(CLUSTER_NAME)-control-plane:$$port" \
 	  -c zap-rules.tsv -r zap-report.html -J zap-report.json -I
 
+## Posture & compliance (benchmarks against standards, not just your own rules)
+.PHONY: scan-config cis
+KUBESCAPE := docker run --rm -v kubescape-cache:/home/nonroot/.kubescape \
+             -v "$(CURDIR):/src" -w /src $(KUBESCAPE_IMAGE)
+scan-config: | $(REPORTS) ## Kubescape: scan the hardened K8s manifests against the NSA + MITRE frameworks
+	$(KUBESCAPE) scan framework nsa,mitre k8s/base \
+	  --compliance-threshold 70 --format pretty-printer
+	@$(KUBESCAPE) scan framework nsa,mitre k8s/base \
+	  --format json --output $(REPORTS)/kubescape.json >/dev/null 2>&1 || true
+	@echo "kubescape report: $(REPORTS)/kubescape.json  (try 'k8s/insecure' to watch it fail)"
+cis: | $(REPORTS) ## CIS Kubernetes Benchmark against the running cluster (kube-bench)
+	@sed 's#__KUBEBENCH_IMAGE__#$(KUBEBENCH_IMAGE)#' platform/cis/kube-bench-job.yaml.tpl \
+	  | kubectl --context $(CTX) apply -f -
+	@kubectl --context $(CTX) -n kube-system wait --for=condition=complete job/kube-bench --timeout=150s || true
+	@kubectl --context $(CTX) -n kube-system logs job/kube-bench | tee $(REPORTS)/kube-bench.txt
+	@kubectl --context $(CTX) -n kube-system delete job kube-bench --ignore-not-found >/dev/null
+
 ## Detect & respond (Part 4)
 .PHONY: audit detect incident triage ai-doctor
 audit: ## Show the last lines of the Kubernetes API audit log

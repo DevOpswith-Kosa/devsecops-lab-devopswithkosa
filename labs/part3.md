@@ -138,6 +138,45 @@ the PR long before admission.
 
 ---
 
+## Lab 16b — Measure against the standards: Kubescape + CIS benchmark
+
+Conftest and Gatekeeper enforce **your** rules. Now measure your cluster and
+manifests against **industry standards** — the gap you can't see is the one
+that gets you.
+
+**Kubescape — scan the manifests (shift-left, no cluster):**
+
+```bash
+make scan-config        # k8s/base against the NSA-CISA + MITRE frameworks
+```
+
+The hardened base passes (score ≥ 70). Now watch the insecure Part 1 manifest
+fail the same frameworks:
+
+```bash
+docker run --rm -v "$PWD:/src" -w /src quay.io/kubescape/kubescape-cli:v4.0.21 \
+  scan framework nsa,mitre k8s/insecure --format pretty-printer
+```
+
+This is what Kubescape adds over conftest: findings mapped to **NSA-CISA**
+hardening guidance and **MITRE ATT&CK** techniques, not just pass/fail. It runs
+in CI (`20-ci.yml`), so a weak manifest fails the PR.
+
+**kube-bench — benchmark the running cluster (CIS):**
+
+```bash
+make cis                # runs kube-bench as a Job against the kind node
+```
+
+You'll see `[PASS]`, `[WARN]` and `[FAIL]` lines against the **CIS Kubernetes
+Benchmark**. kind is a developer cluster, not a hardened distribution, so there
+are real FAILs — that is the lesson. A benchmark measures the distance between
+what you run and the standard, so you can see it and decide what to close. Read
+`$REPORTS/kube-bench.txt` and pick three findings you'd fix on a production
+cluster.
+
+---
+
 ## Lab 17 — Sign and verify images
 
 Close A3 completely. CI **keyless-signs** each image by digest, tied to your
@@ -152,6 +191,32 @@ cosign version
 
 ---
 
+## Lab 17b — Dynamic scan the running app (DAST)
+
+Every scan so far was **static** — it read code, manifests, the image. DAST is
+**dynamic**: it drives the *running* app over HTTP, like an attacker with no
+source access, and reports what it finds live (missing headers, exposed
+endpoints, injection responses).
+
+Deploy the app, then scan it where it runs:
+
+```bash
+make build push
+make deploy ENV=dev          # hardened, deploy-by-digest
+make dast ENV=dev            # OWASP ZAP baseline against the app in dev
+```
+
+ZAP crawls the service in the cluster and writes `reports/zap-report.html`.
+Because Part 3 added the security headers and locked the app down, the baseline
+is clean — compare that to running it against the Part 1 app. DAST is the
+complement to SAST: static scanning proves the code *looks* right, DAST proves
+the deployed app *behaves* right.
+
+> Static (SAST/SCA/IaC/config) → build → sign → admission → **DAST on the live
+> app** → detection. Each layer sees something the others can't.
+
+---
+
 ### What you built: security-first architecture
 
 | Attack (Part 2) | Control (Part 3) | Lab |
@@ -162,5 +227,7 @@ cosign version
 | A2 any insecure pod | Pod Security `restricted` | 15 |
 | A2 bad deploy by hand | Gatekeeper admission + conftest shift-left | 16 |
 | A3 image swap | deploy by digest, cosign sign + verify | 16, 17 |
+| gap vs. standards | Kubescape (NSA/MITRE) + kube-bench (CIS Benchmark) | 16b |
+| vulnerable running app | OWASP ZAP dynamic scan (DAST) | 17b |
 
 → Continue to **`labs/part4.md`** to catch the next attempt.

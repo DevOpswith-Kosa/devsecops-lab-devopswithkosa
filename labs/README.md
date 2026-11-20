@@ -66,5 +66,11 @@ attack/         the red-team lab (Part 2)
 detect/         the audit-log detector (Part 4)
 ai/             the Claude-powered build/security/incident tools (Part 4)
 scenarios/      self-contained break-fix-detect case studies
+docs/           architecture.md: the begin → final pipeline diagrams
 Makefile        every command the pipeline runs, runnable locally
 ```
+
+> New to the big picture? Read **[`docs/architecture.md`](../docs/architecture.md)**
+> first — it draws the plain Part 1 pipeline and the full DevSecOps pipeline
+> with every gate (including Kubescape config scanning, the CIS benchmark, and
+> DAST) side by side.
