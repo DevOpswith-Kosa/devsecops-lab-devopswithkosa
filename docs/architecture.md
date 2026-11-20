@@ -8,7 +8,10 @@ This track builds a pipeline in two states:
    gate, identity is short-lived, artifacts are immutable and signed, the
    cluster is benchmarked, and what gets through is detected and triaged by AI.
 
-GitHub renders the Mermaid diagrams below.
+GitHub renders the Mermaid diagrams below. For an **editable draw.io diagram
+with the real tool logos**, open [`architecture.drawio`](architecture.drawio)
+at [app.diagrams.net](https://app.diagrams.net) (File → Open, or drag the file
+onto the canvas).
 
 ---
 
