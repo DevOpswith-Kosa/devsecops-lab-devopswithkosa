@@ -41,6 +41,11 @@ A student clones this into their own repo and works through **22 labs** and
 
 ## Start here
 
+**New to all of this? Read [`STUDY_GUIDE.md`](STUDY_GUIDE.md) first** — a
+zero-knowledge, machine-agnostic walkthrough that takes you from an empty
+laptop through all 22 labs, with per-OS setup, checkpoints, a troubleshooting
+playbook, and a study schedule.
+
 ```bash
 # turn this folder into your own git repo (workflows must live at the repo root)
 cicd/scripts/new-lab-repo.sh ~/devsecops-lab
