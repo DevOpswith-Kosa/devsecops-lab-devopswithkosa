@@ -94,9 +94,9 @@ curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stabl
 # gh: https://github.com/cli/cli#installation
 ```
 
-**Windows:** use **WSL2** (Windows Subsystem for Linux) with Docker Desktop's
-WSL integration turned on, then follow the **Linux** steps inside your WSL
-terminal. Do not try to run the labs in PowerShell — they assume a Linux shell.
+**Windows:** do **not** run the labs in PowerShell — they assume a Linux shell.
+The supported, recommended path is **WSL2**. Follow **Section 3b** just below,
+then come back and run the **Linux** install steps *inside* your WSL terminal.
 
 ### Requirements
 
@@ -117,6 +117,59 @@ gh auth status        # must say "Logged in". If not: gh auth login
 ```
 
 If any line errors, fix that one tool before moving on — Section 7 has help.
+
+### 3b. Running on Windows — the recommended way (WSL2)
+
+This whole course is Linux shell + Docker + kind. On Windows you run it inside
+**WSL2** (Windows Subsystem for Linux) — a real Linux environment Windows runs
+for you. It works well here *because* the course uses a self-hosted runner and a
+local cluster, so GitHub never has to reach into your machine over the internet
+— the part that normally makes Windows painful. Do this once:
+
+**1. Install WSL2 + a distro** (PowerShell as Administrator, one time):
+```powershell
+wsl --install -d Ubuntu
+```
+Reboot if it asks, then open **Ubuntu** from the Start menu and create your
+Linux username/password. From now on, everything happens in this Ubuntu
+terminal — never PowerShell.
+
+**2. Install Docker Desktop and turn on WSL integration.**
+Install Docker Desktop for Windows, then: **Settings → Resources → WSL
+Integration → enable your Ubuntu distro**. This lets `docker` and `kind` work
+*inside* WSL. Make sure Docker Desktop is running before any lab.
+
+**3. Give WSL enough memory.** The cluster + scanners need ~8 GB. Create the
+file `C:\Users\<you>\.wslconfig` (in Windows) with:
+```ini
+[wsl2]
+memory=8GB
+processors=4
+```
+Then in PowerShell: `wsl --shutdown`, and reopen Ubuntu. (16 GB of laptop RAM is
+comfortable; 8 GB is the tight minimum.)
+
+**4. Work inside the Linux home, NOT the Windows drive.** Clone and run under
+`~/devsecops-lab` in WSL — never under `/mnt/c/...`. Docker + kind on the
+Windows drive is slow and hits file-permission errors. (You can still browse
+the files from Windows Explorer at `\\wsl$\Ubuntu\home\<you>` if you want.)
+
+**5. Now go back to the Linux install block above** and run it in your Ubuntu
+terminal, then continue to the verify step and Section 4.
+
+**Windows-specific troubleshooting:**
+
+| Symptom | Fix |
+|---------|-----|
+| `docker: command not found` in WSL | Docker Desktop not running, or WSL integration off (step 2) |
+| `make up` is painfully slow or errors on files | you're under `/mnt/c/...`; move the project into `~/` (step 4) |
+| cluster unhealthy / OOM | raise WSL memory in `.wslconfig` (step 3), `wsl --shutdown`, retry |
+| signing / OIDC / TLS fails with weird time errors | clock drift after sleep — run `wsl --shutdown` and reopen, or `sudo hwclock -s` |
+| `curl localhost:8080` works in WSL but not from a Windows browser | run the `curl` *inside* WSL (that's what the labs do); it shares WSL's localhost |
+
+Everything else in this guide — every `make` target, every scanner, OIDC, the
+CIS benchmark — behaves the same in WSL2 as on macOS or Linux, because the tools
+all run as containers.
 
 ### (Optional) AI credential for Part 4
 
