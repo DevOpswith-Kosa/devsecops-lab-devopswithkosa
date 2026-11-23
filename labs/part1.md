@@ -18,12 +18,14 @@ git --version
 make --version
 gh --version          # GitHub CLI, logged in: gh auth login
 python3 --version     # Part 2 attacker box, Part 4 detector
+cosign version        # Part 3: the pipeline signs images on your machine
 ```
 
 Then, from the repo folder, `make doctor` checks all of it (plus Docker
 memory and free ports) and prints the exact fix for anything wrong.
 
-Install anything missing (macOS: `brew install kind kubectl gh make python3`). You do
+Install anything missing (macOS: `brew install kind kubectl gh make python3 cosign`; Linux/WSL: see
+`STUDY_GUIDE.md` section 3). You do
 **not** install trivy/semgrep/gitleaks/etc. — they run as containers.
 
 ---
@@ -117,6 +119,9 @@ gh run watch
 ```
 
 Watch it build and deploy to `dev`. `make status` shows the new version.
+
+It is the only workflow that runs for now: the secure pipelines wait in
+`ci/workflows/` until you turn them on in Part 3 (Lab 14).
 
 **You now have CI/CD.** Read `10-ci-insecure.yml` top to bottom — every line
 marked `(!)` is a weakness. In Part 2 you exploit them.

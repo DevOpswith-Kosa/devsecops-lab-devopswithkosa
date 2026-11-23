@@ -63,7 +63,7 @@ environment.
 
 ## 3. Set up your machine (do this once)
 
-You install only **seven** things. Every scanner (Trivy, Gitleaks, Semgrep, OPA,
+You install only **eight** things. Every scanner (Trivy, Gitleaks, Semgrep, OPA,
 ZAP, Kubescape, kube-bench…) runs as a container, so you never install those.
 
 | Tool | What it is | Why you need it |
@@ -75,23 +75,27 @@ ZAP, Kubescape, kube-bench…) runs as a container, so you never install those.
 | **make** | command runner | every lab step is a `make` target |
 | **gh** | GitHub CLI | creates your repo, logs you in |
 | **python3** | Python | runs the attacker box (Part 2) and the detector (Part 4) |
+| **cosign** | image signing | the Part 3 pipeline signs and verifies images on your machine |
 
 ### Install
 
 **macOS** (needs [Homebrew](https://brew.sh)):
 ```bash
 brew install --cask docker        # then open Docker Desktop once, let it start
-brew install kind kubectl git make gh python3
+brew install kind kubectl git make gh python3 cosign
 ```
 
 **Linux (Debian/Ubuntu):**
 ```bash
 # docker: follow https://docs.docker.com/engine/install/ for your distro
-sudo apt-get update && sudo apt-get install -y git make python3 curl
+# (libicu-dev: the GitHub Actions runner from Lab 4 needs it)
+sudo apt-get update && sudo apt-get install -y git make python3 curl libicu-dev
 # kind (pinned: must be >= KIND_VERSION in tools.env; ARM machines: kind-linux-arm64):
 curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.33.0/kind-linux-amd64 && sudo install kind /usr/local/bin/ && rm kind
 # kubectl:
 curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && sudo install kubectl /usr/local/bin/
+# cosign (Part 3 image signing):
+curl -Lo cosign https://github.com/sigstore/cosign/releases/download/v3.1.4/cosign-linux-amd64 && sudo install cosign /usr/local/bin/ && rm cosign
 # gh: https://github.com/cli/cli#installation
 ```
 
@@ -116,6 +120,7 @@ make --version
 gh --version
 gh auth status        # must say "Logged in". If not: gh auth login
 python3 --version
+cosign version
 ```
 
 Once you have the repo (Section 4), `make doctor` re-checks all of this —

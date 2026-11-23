@@ -73,7 +73,7 @@ git commit -m "remove vulnerable chatops bot"
 
 The rule it broke: **never interpolate untrusted input (`${{ github.event.*
 }}`) into a shell**. Pass it through `env:` instead, where the shell treats it
-as data. The secure workflows in `.github/workflows/20-ci.yml` and `21-cd.yml`
+as data. The secure workflows waiting in `ci/workflows/20-ci.yml` and `21-cd.yml`
 do exactly this.
 
 ---
@@ -94,7 +94,8 @@ every push and PR, and `21-cd.yml` deploys over OIDC by digest.
 
 ```bash
 git rm .github/workflows/10-ci-insecure.yml
-git add .github/workflows/20-ci.yml .github/workflows/21-cd.yml
+cp ci/workflows/20-ci.yml ci/workflows/21-cd.yml .github/workflows/
+git add .github/workflows/
 git commit -m "secure CI/CD: scans + OIDC deploy"
 git push
 gh run watch

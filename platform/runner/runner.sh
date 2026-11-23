@@ -30,7 +30,7 @@ install)
   # images leave out (it then dies with "Libicu's dependencies is missing").
   if [[ "$(os)" == linux ]] && ! { ldconfig -p 2>/dev/null || /sbin/ldconfig -p 2>/dev/null; } | grep -q libicu; then
     die "the runner needs ICU. Install it, then re-run:
-    Ubuntu/Debian/WSL: sudo apt-get install -y \$(apt-cache search --names-only '^libicu[0-9]+\$' | sort -V | tail -1 | cut -d' ' -f1)
+    Ubuntu/Debian/WSL: sudo apt-get install -y libicu-dev
     Fedora/RHEL:       sudo dnf install -y libicu"
   fi
   mkdir -p "$DIR"; cd "$DIR"

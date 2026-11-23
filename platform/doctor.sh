@@ -44,6 +44,13 @@ command -v gh >/dev/null 2>&1 && ok "gh installed" \
   || meh "gh not installed: needed for Lab 1 (your repo), the runner and OIDC labs"
 command -v python3 >/dev/null 2>&1 && ok "python3 installed" \
   || meh "python3 not installed: needed for the Part 2 attacker box and Part 4 (detect, AI)"
+command -v cosign >/dev/null 2>&1 && ok "cosign installed" \
+  || meh "cosign not installed: the Part 3 pipeline signs/verifies images with it on this machine.
+      macOS: brew install cosign   Linux/WSL: curl -Lo cosign https://github.com/sigstore/cosign/releases/download/$COSIGN_VERSION/cosign-$OS-$ARCH && sudo install cosign /usr/local/bin/ && rm cosign"
+# The self-hosted runner (Lab 4) is a .NET app that needs ICU on Linux.
+if [[ "$OS" == linux ]] && ! { ldconfig -p 2>/dev/null || /sbin/ldconfig -p 2>/dev/null; } | grep -q libicu; then
+  meh "libicu not installed: the GitHub runner (Lab 4) will not start. Ubuntu/Debian/WSL: sudo apt-get install -y libicu-dev"
+fi
 
 # 4. kind must understand the pinned node image (older kind fails with
 #    "your configuration file uses an old API spec: kubeadm.k8s.io/v1beta3").

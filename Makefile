@@ -118,9 +118,8 @@ sbom: | $(REPORTS) ## CycloneDX SBOM of the built image
 	$(TRIVY) image --format cyclonedx --output $(REPORTS)/sbom.cdx.json $(IMAGE):$(SHA)
 	@echo "SBOM: $(REPORTS)/sbom.cdx.json ($$(grep -c '"bom-ref"' $(REPORTS)/sbom.cdx.json) components)"
 scan-workflows: ## actionlint + zizmor: mistakes and security holes in .github/workflows
-	@ls .github/workflows/*.y*ml >/dev/null 2>&1 || { echo "no workflows in .github/workflows yet"; exit 0; }
-	$(DOCKER_RUN) $(ACTIONLINT_IMAGE) -color -config-file .github/actionlint.yaml .github/workflows/*.y*ml
-	$(DOCKER_RUN) $(ZIZMOR_IMAGE) --offline --persona=pedantic --min-severity medium .github/workflows
+	$(DOCKER_RUN) $(ACTIONLINT_IMAGE) -color -config-file .github/actionlint.yaml $(wildcard .github/workflows/*.y*ml ci/workflows/*.y*ml)
+	$(DOCKER_RUN) $(ZIZMOR_IMAGE) --offline --persona=pedantic --min-severity medium $(wildcard .github/workflows/*.y*ml ci/workflows/*.y*ml)
 dast: | $(REPORTS) ## OWASP ZAP baseline scan against the app running in ENV=dev|prod
 	@port=$$([ "$(ENV)" = prod ] && echo 30081 || echo 30080); \
 	cp .zap/rules.tsv $(REPORTS)/zap-rules.tsv; \

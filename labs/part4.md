@@ -68,9 +68,12 @@ It names the failing step, the root cause, a copy-pasteable fix, and one change
 to stop it recurring — and if the failure is a **scanner doing its job**, it
 says so: fix the code, not the gate.
 
-To wire it into GitHub, add the key as a secret:
+To wire it into GitHub, turn the workflow on and add the key as a secret:
 
 ```bash
+cp ci/workflows/30-ai-build-doctor.yml .github/workflows/
+git add .github/workflows/30-ai-build-doctor.yml
+git commit -m "AI build doctor" && git push
 gh secret set ANTHROPIC_API_KEY
 ```
 
