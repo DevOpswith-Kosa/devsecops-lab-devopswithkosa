@@ -14,7 +14,7 @@ fi
 [[ -e "$dest" ]] && { echo "x $dest already exists. Pick another folder or delete it." >&2; exit 1; }
 mkdir -p "$dest"
 # Copy everything except generated or machine-specific files.
-( cd "$src" && tar --exclude='./.local' --exclude='./reports' \
+( cd "$src" && tar --exclude='./.git' --exclude='./.local' --exclude='./reports' \
     --exclude='./platform/runner/actions-runner' \
     --exclude='./k8s/.render.*' --exclude='__pycache__' -cf - . ) | ( cd "$dest" && tar -xf - )
 cd "$dest"
