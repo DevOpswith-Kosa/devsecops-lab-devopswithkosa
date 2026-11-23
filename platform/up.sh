@@ -2,8 +2,7 @@
 # Create the local platform: a registry and a kind cluster that pulls from it.
 # Safe to re-run: existing pieces are kept.
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
-need docker; need kind; need kubectl
-docker info >/dev/null 2>&1 || die "Docker is not running. Start Docker Desktop (or the docker service) first."
+"$ROOT/platform/doctor.sh" || exit 1
 
 # 1. Local container registry (the "artifact store" of this lab).
 if [[ "$(docker inspect -f '{{.State.Running}}' "$REG_NAME" 2>/dev/null)" != true ]]; then

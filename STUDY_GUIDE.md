@@ -63,7 +63,7 @@ environment.
 
 ## 3. Set up your machine (do this once)
 
-You install only **six** things. Every scanner (Trivy, Gitleaks, Semgrep, OPA,
+You install only **seven** things. Every scanner (Trivy, Gitleaks, Semgrep, OPA,
 ZAP, Kubescape, kube-bench…) runs as a container, so you never install those.
 
 | Tool | What it is | Why you need it |
@@ -74,21 +74,22 @@ ZAP, Kubescape, kube-bench…) runs as a container, so you never install those.
 | **git** | version control | the labs are a git repo |
 | **make** | command runner | every lab step is a `make` target |
 | **gh** | GitHub CLI | creates your repo, logs you in |
+| **python3** | Python | runs the attacker box (Part 2) and the detector (Part 4) |
 
 ### Install
 
 **macOS** (needs [Homebrew](https://brew.sh)):
 ```bash
 brew install --cask docker        # then open Docker Desktop once, let it start
-brew install kind kubectl git make gh
+brew install kind kubectl git make gh python3
 ```
 
 **Linux (Debian/Ubuntu):**
 ```bash
 # docker: follow https://docs.docker.com/engine/install/ for your distro
-sudo apt-get update && sudo apt-get install -y git make
-# kind:
-curl -Lo ./kind https://kind.sigs.k8s.io/dl/latest/kind-linux-amd64 && sudo install kind /usr/local/bin/
+sudo apt-get update && sudo apt-get install -y git make python3 curl
+# kind (pinned: must be >= KIND_VERSION in tools.env; ARM machines: kind-linux-arm64):
+curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.33.0/kind-linux-amd64 && sudo install kind /usr/local/bin/ && rm kind
 # kubectl:
 curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && sudo install kubectl /usr/local/bin/
 # gh: https://github.com/cli/cli#installation
@@ -114,7 +115,11 @@ git --version
 make --version
 gh --version
 gh auth status        # must say "Logged in". If not: gh auth login
+python3 --version
 ```
+
+Once you have the repo (Section 4), `make doctor` re-checks all of this —
+plus Docker memory, the kind version and free ports — and prints the fix.
 
 If any line errors, fix that one tool before moving on — Section 7 has help.
 
@@ -163,6 +168,9 @@ terminal, then continue to the verify step and Section 4.
 |---------|-----|
 | `docker: command not found` in WSL | Docker Desktop not running, or WSL integration off (step 2) |
 | `make up` is painfully slow or errors on files | you're under `/mnt/c/...`; move the project into `~/` (step 4) |
+| `make up` fails with `old API spec: kubeadm.k8s.io/v1beta3` | kind is too old for the node image — `make doctor` prints the upgrade command |
+| `port 6443 is already in use` | Docker Desktop's own Kubernetes is on: Settings → Kubernetes → disable it |
+| `bad interpreter: ...^M` or `missing separator` | files got Windows line endings — clone inside WSL, not with Windows git |
 | cluster unhealthy / OOM | raise WSL memory in `.wslconfig` (step 3), `wsl --shutdown`, retry |
 | signing / OIDC / TLS fails with weird time errors | clock drift after sleep — run `wsl --shutdown` and reopen, or `sudo hwclock -s` |
 | `curl localhost:8080` works in WSL but not from a Windows browser | run the `curl` *inside* WSL (that's what the labs do); it shares WSL's localhost |
@@ -186,14 +194,16 @@ GitHub only runs pipelines from the **root** of a repository, so your first job
 is to turn this course folder into your own private repo.
 
 ```bash
-# 1. Copy the track out into its own folder and make it a git repo
-cicd/scripts/new-lab-repo.sh ~/devsecops-lab
+# 1. Get the course, then copy it into its own folder as a fresh git repo
+git clone https://github.com/DevOpswith-Kosa/devsecops-lab.git ~/devsecops-course
+~/devsecops-course/scripts/new-lab-repo.sh ~/devsecops-lab
 cd ~/devsecops-lab
 
 # 2. Create YOUR private GitHub repo and push to it
 gh repo create devsecops-lab --private --source . --push
 
-# 3. Bring up the local platform (registry + kind cluster) — takes 1–3 min
+# 3. Check the machine, then bring up the local platform (1–3 min)
+make doctor
 make up
 make status
 ```

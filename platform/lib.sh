@@ -16,7 +16,7 @@ c_ok=$'\e[32m'; c_warn=$'\e[33m'; c_err=$'\e[31m'; c_dim=$'\e[2m'; c_off=$'\e[0m
 say()  { printf '%s▸%s %s\n' "$c_ok" "$c_off" "$*"; }
 warn() { printf '%s!%s %s\n' "$c_warn" "$c_off" "$*" >&2; }
 die()  { printf '%s✘%s %s\n' "$c_err" "$c_off" "$*" >&2; exit 1; }
-need() { command -v "$1" >/dev/null 2>&1 || die "'$1' is not installed. See labs/part1/00-prerequisites.md"; }
+need() { command -v "$1" >/dev/null 2>&1 || die "'$1' is not installed. Run 'make doctor', or see STUDY_GUIDE.md section 3"; }
 kc()   { kubectl --context "$CTX" "$@"; }
 
 cluster_exists() { kind get clusters 2>/dev/null | grep -qx "$CLUSTER_NAME"; }

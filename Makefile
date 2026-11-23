@@ -33,7 +33,9 @@ $(REPORTS):
 	@mkdir -p $(REPORTS) && chmod 777 $(REPORTS)
 
 ## Platform (kind cluster + local registry)
-.PHONY: up down status oidc oidc-vars gatekeeper
+.PHONY: doctor up down status oidc oidc-vars gatekeeper
+doctor: ## Check this machine can run the lab (tools, versions, Docker, RAM, ports)
+	@platform/doctor.sh
 up: ## Create the registry and the kind cluster
 	@platform/up.sh
 down: ## Delete the cluster and the registry
@@ -142,10 +144,16 @@ cis: | $(REPORTS) ## CIS Kubernetes Benchmark against the running cluster (kube-
 	@kubectl --context $(CTX) -n kube-system delete job kube-bench --ignore-not-found >/dev/null
 
 ## Detect & respond (Part 4)
+# The API server writes the audit log as root with mode 0600. On Linux and
+# WSL that makes it unreadable to you, so open it up before reading it
+# (every time: log rotation creates a fresh 0600 file).
+AUDIT_READABLE = docker exec $(CLUSTER_NAME)-control-plane sh -c 'chmod a+r /var/log/kubernetes/*.log' >/dev/null 2>&1 || true
 .PHONY: audit detect incident triage ai-doctor
 audit: ## Show the last lines of the Kubernetes API audit log
+	@$(AUDIT_READABLE)
 	@tail -n 40 .local/audit/audit.log 2>/dev/null || echo "no audit log yet (make up, then do something)"
 detect: ## Scan the audit log for attack signals -> detect/findings.json
+	@$(AUDIT_READABLE)
 	@detect/detect.py --json detect/findings.json || true   # exit code = finding count (for CI); not a make failure here
 incident: detect ## AI incident report from the findings (needs a Claude credential)
 	@ai/incident-doctor.py --findings detect/findings.json $(ALERT)

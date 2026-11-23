@@ -1,0 +1,7 @@
+# Always check text files out with Unix line endings, even with Git for
+# Windows. A CRLF in a shell script or the Makefile breaks the lab
+# ("bad interpreter: /usr/bin/env bash^M", "missing separator").
+* text=auto eol=lf
+*.png  binary
+*.jpg  binary
+*.ico  binary

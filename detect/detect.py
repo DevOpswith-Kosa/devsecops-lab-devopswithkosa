@@ -63,7 +63,9 @@ def rules(e: dict) -> list[tuple[str, str, str]]:
 
     who = f"{user} -> {verb} {kind}{'/' + sub if sub else ''} {ns}/{name}"
 
-    if sub in ("exec", "attach") and verb == "create":
+    # kubectl >= 1.30 opens exec/attach over WebSockets, which the audit log
+    # records as "get"; older clients and raw API calls (SPDY) record "create".
+    if sub in ("exec", "attach") and verb in ("create", "get"):
         out.append(("critical", "RUNTIME-EXEC",
                     f"shell/exec opened in a pod: {who}"))
     # The lab's assets live in dev/prod; cluster setup lives in the system
@@ -110,7 +112,14 @@ def main() -> int:
 
     findings = []
     bad_lines = 0
-    for line in log.read_text(errors="replace").splitlines():
+    try:
+        text = log.read_text(errors="replace")
+    except PermissionError:
+        print(f"cannot read {log}: the API server writes it as root.\n"
+              "run `make detect` (it makes the log readable first)",
+              file=sys.stderr)
+        return 0
+    for line in text.splitlines():
         line = line.strip()
         if not line:
             continue

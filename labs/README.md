@@ -38,11 +38,13 @@ By the end you can explain and demonstrate, hands-on:
 labs/part1.md   # step 0 lists them and checks your machine
 
 # 2. Make this your own repository (GitHub won't run workflows from a subfolder)
-cicd/scripts/new-lab-repo.sh ~/devsecops-lab
+git clone https://github.com/DevOpswith-Kosa/devsecops-lab.git ~/devsecops-course
+~/devsecops-course/scripts/new-lab-repo.sh ~/devsecops-lab
 cd ~/devsecops-lab
 gh repo create devsecops-lab --private --source . --push
 
 # 3. Bring up the platform
+make doctor   # fix anything it marks with ✘
 make up
 make status
 ```

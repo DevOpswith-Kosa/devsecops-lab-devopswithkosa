@@ -47,9 +47,11 @@ laptop through all 22 labs, with per-OS setup, checkpoints, a troubleshooting
 playbook, and a study schedule.
 
 ```bash
-# turn this folder into your own git repo (workflows must live at the repo root)
-cicd/scripts/new-lab-repo.sh ~/devsecops-lab
+# copy the course into your own fresh git repo (workflows must live at the repo root)
+git clone https://github.com/DevOpswith-Kosa/devsecops-lab.git ~/devsecops-course
+~/devsecops-course/scripts/new-lab-repo.sh ~/devsecops-lab
 cd ~/devsecops-lab && gh repo create devsecops-lab --private --source . --push
+make doctor          # checks tools, versions, Docker, RAM and ports
 make up              # local registry + kind cluster
 ```
 

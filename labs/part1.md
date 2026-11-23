@@ -17,9 +17,13 @@ kubectl version --client
 git --version
 make --version
 gh --version          # GitHub CLI, logged in: gh auth login
+python3 --version     # Part 2 attacker box, Part 4 detector
 ```
 
-Install anything missing (macOS: `brew install kind kubectl gh make`). You do
+Then, from the repo folder, `make doctor` checks all of it (plus Docker
+memory and free ports) and prints the exact fix for anything wrong.
+
+Install anything missing (macOS: `brew install kind kubectl gh make python3`). You do
 **not** install trivy/semgrep/gitleaks/etc. — they run as containers.
 
 ---
@@ -27,10 +31,11 @@ Install anything missing (macOS: `brew install kind kubectl gh make`). You do
 ## Lab 1 — Make the lab your own repository
 
 GitHub only runs workflows from the **root** of a repository, so copy this
-track out of `kubeacademy` into its own repo:
+course into a fresh repository of your own:
 
 ```bash
-cicd/scripts/new-lab-repo.sh ~/devsecops-lab
+git clone https://github.com/DevOpswith-Kosa/devsecops-lab.git ~/devsecops-course
+~/devsecops-course/scripts/new-lab-repo.sh ~/devsecops-lab
 cd ~/devsecops-lab
 gh repo create devsecops-lab --private --source . --push
 ```
