@@ -26,6 +26,13 @@ case "$cmd" in
 install)
   repo="${1:-}"; [[ "$repo" =~ ^[^/]+/[^/]+$ ]] || die "usage: runner.sh install owner/repo"
   command -v gh >/dev/null || die "the GitHub CLI 'gh' is required to register the runner (brew install gh; gh auth login)"
+  # The runner is a .NET app: on Linux it needs ICU, which minimal Ubuntu/WSL
+  # images leave out (it then dies with "Libicu's dependencies is missing").
+  if [[ "$(os)" == linux ]] && ! { ldconfig -p 2>/dev/null || /sbin/ldconfig -p 2>/dev/null; } | grep -q libicu; then
+    die "the runner needs ICU. Install it, then re-run:
+    Ubuntu/Debian/WSL: sudo apt-get install -y \$(apt-cache search --names-only '^libicu[0-9]+\$' | sort -V | tail -1 | cut -d' ' -f1)
+    Fedora/RHEL:       sudo dnf install -y libicu"
+  fi
   mkdir -p "$DIR"; cd "$DIR"
   pkg="actions-runner-$(os)-$(arch)-${RUNNER_VERSION}.tar.gz"
   if [[ ! -f config.sh ]]; then
@@ -45,7 +52,12 @@ start)
   [[ -x "$DIR/run.sh" ]] || die "not installed yet (make runner-install REPO=owner/repo)"
   if [[ -f "$PIDFILE" ]] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then say "already running (pid $(cat "$PIDFILE"))"; exit 0; fi
   ( cd "$DIR" && nohup ./run.sh >"$HERE/runner.log" 2>&1 & echo $! > "$PIDFILE" )
-  sleep 2; say "Runner started (pid $(cat "$PIDFILE")). Logs: platform/runner/runner.log"
+  sleep 5
+  if ! kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
+    rm -f "$PIDFILE"; tail -5 "$HERE/runner.log" >&2
+    die "the runner exited straight away (log above, full log: platform/runner/runner.log)"
+  fi
+  say "Runner started (pid $(cat "$PIDFILE")). Logs: platform/runner/runner.log"
   ;;
 stop)
   [[ -f "$PIDFILE" ]] && kill "$(cat "$PIDFILE")" 2>/dev/null && rm -f "$PIDFILE" && say "stopped" || say "not running"
