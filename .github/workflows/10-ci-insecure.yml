@@ -24,10 +24,11 @@ jobs:
       #     the tag controls what runs on your machine.
       - uses: actions/checkout@v5
 
+      # Same command as on your laptop: pytest runs in a python container, so
+      # the runner needs no Python of its own (Ubuntu/Debian/Homebrew block
+      # system-wide `pip install` -- PEP 668).
       - name: Test
-        run: |
-          pip install -q -r app/requirements-dev.txt
-          python -m pytest -q app/tests
+        run: make test
 
       - name: Build and push to the local registry
         run: |

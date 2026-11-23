@@ -21,8 +21,12 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      # A throwaway virtualenv: system pip is locked on Ubuntu/Debian/Homebrew
+      # (PEP 668). Its python is called directly below (no $GITHUB_PATH edits).
       - name: Install the Anthropic SDK
-        run: pip install --quiet anthropic==2.10.0
+        run: |
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install --quiet anthropic==2.10.0
       - name: Diagnose the failing run
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -30,4 +34,4 @@ jobs:
           RUN_ID: ${{ github.event.workflow_run.id }}
         run: |
           gh run view "$RUN_ID" --log-failed > /tmp/failed.log || true
-          ai/build-doctor.py --log /tmp/failed.log --alert
+          "$RUNNER_TEMP/venv/bin/python" ai/build-doctor.py --log /tmp/failed.log --alert
