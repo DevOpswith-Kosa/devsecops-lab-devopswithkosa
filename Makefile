@@ -65,9 +65,11 @@ runner-remove: ## Unregister and delete the runner
 
 ## Build and test
 .PHONY: test build push deploy deploy-insecure
+# The container runs as root on your mounted repo: write no caches into it, or
+# root-owned .pytest_cache/__pycache__ break the next `git clean`/checkout.
 test: ## Unit tests (pytest, in a container)
-	$(DOCKER_RUN) python:3.14-slim sh -c \
-	  "pip install -q --root-user-action=ignore -r app/requirements-dev.txt && python -m pytest -q app/tests"
+	$(DOCKER_RUN) -e PYTHONDONTWRITEBYTECODE=1 python:3.14-slim sh -c \
+	  "pip install -q --root-user-action=ignore -r app/requirements-dev.txt && python -m pytest -q -p no:cacheprovider app/tests"
 build: ## Build the image as $(IMAGE):$(SHA)
 	docker build -t $(IMAGE):$(SHA) app
 push: ## Push the image to the local registry and print its digest
