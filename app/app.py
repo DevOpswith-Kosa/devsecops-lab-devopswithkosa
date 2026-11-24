@@ -119,6 +119,21 @@ def version():
     return jsonify(version=APP_VERSION, env=APP_ENV)
 
 
+# ------------------------------------------------- insecure debug routes (off)
+# Part 1/attack only. These routes exist to be attacked (Lab A4) and are OFF
+# unless BOTH are true: INSECURE_MODE=1 is set AND the vulnerable module has
+# been "armed" next to this file (attack/a4-app-injection/arm.sh copies it in).
+# The baseline ships without the module, so the scanners stay green and the
+# hardened Part 3 deployment never sets the flag.
+try:
+    import insecure_demo  # armed only during Lab A4; absent in the baseline
+except ImportError:
+    insecure_demo = None
+
+if insecure_demo is not None and os.environ.get("INSECURE_MODE") == "1":
+    insecure_demo.register(app, get_db)
+
+
 if __name__ == "__main__":
     # Local development only. In the container gunicorn serves the app.
     app.run(host="127.0.0.1", port=8080)

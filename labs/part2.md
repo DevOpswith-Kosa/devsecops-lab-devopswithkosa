@@ -123,6 +123,55 @@ signature**.
 
 ---
 
+## Lab 10b — A4: break in through the app itself (RCE + SQLi)
+
+**What you're doing:** attacking the *application*, not the pipeline — over plain
+`curl`, with **no stolen credential at all**. A1–A3 abused the CI/CD system; this
+is the other front door: **OWASP Top 10 A03 (Injection)** in the running app. A
+left-on debug endpoint runs your shell commands (RCE), and a legacy search
+endpoint concatenates your input into SQL (SQLi).
+
+First **arm** it — this plants the vulnerable routes into the app, rebuilds the
+image, and redeploys the insecure Part 1 workload (which sets `INSECURE_MODE=1`):
+
+```bash
+attack/a4-app-injection/arm.sh
+```
+
+Now attack the live app:
+
+```bash
+attack/a4-app-injection/exploit.sh            # defaults to http://localhost:8080
+```
+
+What each step does:
+
+- **A4.1 / A4.2 — RCE (command injection).** The `/admin/diag?host=` endpoint
+  runs `ping <host>` in a shell. A `;` ends the ping and starts *your* command,
+  so `host=;cat /var/run/secrets/.../token` makes the app read the **mounted
+  ServiceAccount token** and hand it back over HTTP — the same prize A2 stole,
+  but with nothing more than curl. You'll also see `id` (root), the secrets
+  mount, and the environment.
+- **A4.3 / A4.4 — SQLi.** The `/api/search?q=` endpoint formats `q` straight
+  into the query. `q=' OR '1'='1` dumps **every** note; a `UNION SELECT` reads
+  the database **schema** from `sqlite_master`. Proof you can run arbitrary SQL.
+
+> This is why "the pipeline is secure" is not enough — **the app is attack
+> surface too.** Part 3 closes it three ways: the parameterised query already in
+> `app.py` (SQLi), removing the debug route (RCE), and — defence in depth — the
+> hardened pod runs **non-root with no token to read**, so even a working RCE
+> finds nothing. And `make scan-sast` (Lab 14) flags both the `shell=True` and
+> the raw SQL the moment `insecure_demo.py` sits in `app/` — shift-left catching
+> it before it ships.
+
+Un-arm before moving on (so the scanners go green again in Part 3):
+
+```bash
+rm -f app/insecure_demo.py
+```
+
+---
+
 ## Clean up
 
 **What you're doing:** removing the attack artifacts (rogue pod, marker files,
@@ -131,6 +180,7 @@ loot) so you can replay or move on cleanly.
 ```bash
 attack/reset.sh
 attack/attacker-box.sh stop
+rm -f app/insecure_demo.py     # un-arm the A4 app vuln, if you armed it
 ```
 
 ---
@@ -142,6 +192,7 @@ attack/attacker-box.sh stop
 | A1 injection → stolen kubeconfig | SEC-4, SEC-6 | untrusted input in a pipeline = RCE; long-lived creds = total loss |
 | A2 pod & namespace takeover | SEC-6 | a weak workload hands the cluster to anyone who reaches it |
 | A3 image swap | SEC-5 | mutable tags mean "what's deployed" is not "what you reviewed" |
+| A4 app RCE + SQLi | A03 (Web Top 10) | the app is attack surface too; untrusted input in a shell or SQL = game over |
 
 Keep the vulnerable workflow for now. In Part 3 you'll fix each hole and, in
 Part 4, re-run these attacks to watch them fail or get caught.

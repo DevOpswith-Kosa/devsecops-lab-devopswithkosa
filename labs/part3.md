@@ -124,6 +124,13 @@ What you're seeing: `make scan` runs four kinds of check in order — **secrets*
 all pass. `scan-workflows` checks the workflow files themselves and flags the
 **insecure** Part 1 pipeline (unpinned actions, over-broad token).
 
+> **See SAST earn its keep.** If you armed the Part 2 app attack (Lab 10b) and
+> left `app/insecure_demo.py` in place, `make scan-sast` **fails** — Semgrep and
+> Bandit flag the `shell=True` command injection and the raw-SQL query. That is
+> shift-left working: the A4 RCE/SQLi is caught on your laptop, before it ships.
+> The fix is to delete the debug route (`rm -f app/insecure_demo.py`); the
+> parameterised query in `app.py` already handles safe search.
+
 Now replace the insecure pipeline. The secure `20-ci.yml` runs all these gates
 on every push and PR, and `21-cd.yml` deploys over OIDC by digest:
 
@@ -276,6 +283,7 @@ app *behaves* right.
 | A2 any insecure pod | Pod Security `restricted` | 15 |
 | A2 bad deploy by hand | Gatekeeper admission + conftest shift-left | 16 |
 | A3 image swap | deploy by digest, cosign sign + verify | 16, 17 |
+| A4 app RCE + SQLi | SAST catches it (14), no debug route, no token in pod (11) | 11, 14 |
 | gap vs. standards | Kubescape (NSA/MITRE) + kube-bench (CIS Benchmark) | 16b |
 | vulnerable running app | OWASP ZAP dynamic scan (DAST) | 17b |
 

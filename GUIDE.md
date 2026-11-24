@@ -287,7 +287,41 @@ Step by step the script:
 
 ---
 
-### 4.4 Clean up
+### 4.4 Attack A4 — break in through the app itself (RCE + SQLi)
+**OWASP Web Top 10 A03 (Injection).**
+
+A1–A3 attacked the CI/CD *system*. A4 attacks the **application** — over plain
+`curl`, with **no stolen credential at all**. It's the reminder that hardening
+the pipeline doesn't harden the code running at the end of it.
+
+Arm it first (`attack/a4-app-injection/arm.sh`) — this plants a vulnerable debug
+module into the app, rebuilds, and redeploys the insecure workload with
+`INSECURE_MODE=1`. Then:
+
+```bash
+attack/a4-app-injection/exploit.sh
+```
+
+**RCE (command injection).** The `/admin/diag?host=` endpoint runs `ping <host>`
+in a shell. The payload `host=;cat /var/run/secrets/kubernetes.io/serviceaccount/token`
+ends the ping and starts the attacker's command, so the app reads its **own
+mounted ServiceAccount token** and returns it over HTTP — the exact prize A2
+stole, now through the app's front door with nothing but curl.
+
+**SQLi.** The `/api/search?q=` endpoint concatenates `q` into the query. `' OR
+'1'='1` dumps every note; `' UNION SELECT 1,name,sql FROM sqlite_master--` reads
+the schema. Arbitrary SQL, straight from a query string.
+
+> **Fixed in Part 3:** the parameterised query already in `app.py` kills the
+> SQLi; removing the debug route kills the RCE; and — defence in depth — the
+> hardened pod runs non-root with **no token mounted**, so even a working RCE
+> reads nothing. Lab 14's `make scan-sast` (Semgrep + Bandit) flags both the
+> `shell=True` and the raw SQL as soon as the module sits in `app/` — the gate
+> catches it before it ever ships.
+
+---
+
+### 4.5 Clean up
 
 ```bash
 attack/reset.sh                   # remove rogue pod, marker files, loot/
@@ -305,6 +339,7 @@ in Part 4 you re-run these attacks against the hardened cluster to watch them
 | A1 injection → stolen kubeconfig | SEC-4, SEC-6 | untrusted input in a pipeline = remote code execution; long-lived creds = total loss |
 | A2 pod & namespace takeover | SEC-6 | a weak workload hands the cluster to anyone who reaches it |
 | A3 image swap | SEC-5 | mutable tags mean "deployed" ≠ "reviewed" |
+| A4 app RCE + SQLi | A03 (Web) | the app is attack surface too; input in a shell or SQL reads pod secrets / the DB |
 
 ---
 

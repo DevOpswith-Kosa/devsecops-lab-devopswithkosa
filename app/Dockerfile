@@ -27,7 +27,9 @@ RUN apt-get update \
 
 COPY --from=build /install /usr/local
 WORKDIR /app
-COPY app.py .
+# Copies app.py, plus insecure_demo.py IF Lab A4 has armed it (baseline: only
+# app.py). Non-recursive, so app/tests/ is never shipped.
+COPY *.py .
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1

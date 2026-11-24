@@ -59,3 +59,10 @@ def test_security_headers(client):
     assert h["X-Content-Type-Options"] == "nosniff"
     assert h["X-Frame-Options"] == "DENY"
     assert h["Cross-Origin-Embedder-Policy"] == "require-corp"
+
+
+def test_insecure_routes_off_by_default(client):
+    # The Lab A4 debug/search routes must NOT exist in the baseline app, no
+    # matter the env flag -- they only come alive when insecure_demo.py is armed.
+    assert client.get("/admin/diag?host=localhost").status_code == 404
+    assert client.get("/api/search?q=x").status_code == 404

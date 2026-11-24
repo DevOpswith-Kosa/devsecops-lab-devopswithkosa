@@ -61,6 +61,11 @@ spec:
               value: dev
             - name: APP_VERSION
               value: insecure
+            # (!) turns on the vulnerable debug/search routes (Lab A4) once the
+            #     insecure_demo module has been armed into the image. The
+            #     hardened k8s/base deployment never sets this.
+            - name: INSECURE_MODE
+              value: "1"
           # (!) no securityContext at all: runs as root (uid 0), root
           #     filesystem is writable, every Linux capability is kept,
           #     privilege escalation is allowed, no seccomp profile.
