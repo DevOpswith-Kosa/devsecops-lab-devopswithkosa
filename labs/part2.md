@@ -4,35 +4,49 @@
 > cluster and a listener on `127.0.0.1`. Nothing leaves your machine. You do
 > this to understand the defences in Part 3 — read `attack/README.md` first.
 
-You have a working pipeline. Now prove it isn't safe. Three attacks, each
-mapping to an OWASP CI/CD risk, each fixed later.
+**What this part is:** you have a working pipeline; now you prove it isn't safe.
+Three attacks, each mapping to an OWASP CI/CD Top-10 risk, each fixed later in
+Part 3. For the *why each attack works* explanation in plain English, see
+[`../GUIDE.md`](../GUIDE.md) section 4 — this file is the hands-on version.
 
-Start the stand-in "attacker server" (local loot box):
+**The attacker box.** First start a stand-in for "the attacker's server":
 
 ```bash
 attack/attacker-box.sh start      # listens on 127.0.0.1:9000, saves to attack/loot/
 ```
 
+It is a tiny web server that writes **anything sent to it** into `attack/loot/`.
+When a stolen secret shows up there, you've proven the exfiltration worked. It
+stays on `127.0.0.1`, which is what makes practising this safe.
+
 ---
 
 ## Lab 6 — See the injection mechanism (no GitHub needed)
 
-The vulnerable ChatOps workflow drops an issue **title** into a shell. Prove
-the breakout locally first — this runs the *exact* vulnerable shell line:
+**What you're doing:** proving the core bug locally, with a *fake* secret,
+before wiring up the real pipeline. **The bug:** a workflow drops an
+attacker-controlled issue **title** straight into a shell command.
 
 ```bash
 cat attack/a1-pipeline-injection/payload.txt
 attack/a1-pipeline-injection/prove-injection-locally.sh
 ```
 
-See how `/status"; <commands> ; echo "` escapes the `echo` and runs commands.
-That is **script injection** (OWASP CICD-SEC-4).
+- The first command shows you the payload (a crafted issue title).
+- The second runs the *exact* shell line the vulnerable workflow would run, with
+  a fake secret, so you watch the breakout happen.
+
+The payload is `/status"; <commands> ; echo "`. The `";` **closes** the
+workflow's `echo` and starts a new command of the attacker's choosing — here, a
+`curl` that sends the secret to your attacker box. This is **script injection**
+(OWASP CICD-SEC-4). You should see a request land in `attack/loot/`.
 
 ---
 
 ## Lab 7 — Arm the vulnerable workflow
 
-Copy the deliberately-vulnerable workflow into place and push it:
+**What you're doing:** copying the deliberately-vulnerable "ChatOps" workflow
+into your repo and pushing it, so GitHub will run it.
 
 ```bash
 cp attack/workflows/90-chatops-vulnerable.yml .github/workflows/
@@ -49,8 +63,10 @@ mistakes.
 
 ## Lab 8 — A1: poison the pipeline, steal the cluster credential
 
-Open the malicious issue. The self-hosted runner executes the payload and
-exfiltrates the admin kubeconfig to your loot box:
+**What you're doing:** firing the attack for real. You open a GitHub issue whose
+**title is the payload**. GitHub triggers the workflow → your self-hosted runner
+executes the injected command → it exfiltrates the admin kubeconfig to your
+attacker box.
 
 ```bash
 attack/a1-pipeline-injection/exploit.sh     # opens the crafted issue via gh
@@ -58,10 +74,13 @@ attack/attacker-box.sh tail                 # watch the kubeconfig arrive
 ls attack/loot/                             # the stolen credential
 ```
 
-You (as the attacker) now hold a **full cluster-admin kubeconfig** that never
-expires. This is the worst case, and it came from one issue title.
+- `exploit.sh` opens the issue (it only *opens* it; the runner does the rest).
+- `attacker-box.sh tail` streams the attacker box log — watch the kubeconfig
+  appear (press Ctrl-C to stop watching).
 
-Save the stolen kubeconfig to use as the attacker:
+You (as the attacker) now hold a **full cluster-admin kubeconfig** that never
+expires. This is the worst case, and it came from one issue title. Save it to
+use as the attacker in the next lab:
 
 ```bash
 cp attack/loot/*kubeconfig* /tmp/stolen-kubeconfig
@@ -71,9 +90,9 @@ cp attack/loot/*kubeconfig* /tmp/stolen-kubeconfig
 
 ## Lab 9 — A2: own the workload and the namespace
 
-Use the stolen credential to attack the running pod. The Part 1 deployment
-runs as root, has a writable filesystem, and mounts an over-privileged
-ServiceAccount token:
+**What you're doing:** using the stolen credential against the running pod. The
+Part 1 deployment runs as **root**, has a **writable filesystem**, and mounts an
+**over-privileged ServiceAccount token** — the script abuses all three.
 
 ```bash
 attack/a2-pod-compromise/exploit.sh /tmp/stolen-kubeconfig dev
@@ -89,8 +108,9 @@ proof. A real attacker drops a miner or a reverse shell at that last step.
 
 ## Lab 10 — A3: swap the image without touching git
 
-The pipeline deploys the **mutable** `:dev` tag. Anyone who can push to the
-registry can replace what runs — no PR, no pipeline, no trace:
+**What you're doing:** replacing what's running without any pull request or
+pipeline run. The Part 1 pipeline deploys the **mutable** tag `:dev`; anyone who
+can push to the registry can change what `:dev` points at.
 
 ```bash
 attack/a3-image-tampering/exploit.sh dev
@@ -104,6 +124,9 @@ signature**.
 ---
 
 ## Clean up
+
+**What you're doing:** removing the attack artifacts (rogue pod, marker files,
+loot) so you can replay or move on cleanly.
 
 ```bash
 attack/reset.sh
