@@ -12,3 +12,8 @@ __pycache__/
 *.db
 .DS_Store
 detect/findings.json
+# attack lab + runner runtime artifacts (machine-local)
+attack/attacker.log
+attack/.attacker.pid
+platform/runner/.runner.pid
+platform/runner/runner.log
