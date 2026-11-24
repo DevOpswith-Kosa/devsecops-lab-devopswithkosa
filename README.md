@@ -5,6 +5,10 @@ security-first DevSecOps pipeline, then make it **detect and respond** to the
 next attack — with AI doing the triage. Everything runs locally on a real
 Kubernetes cluster. No cloud account, no bill.
 
+> **New here? Start with [`GUIDE.md`](GUIDE.md)** — the full student walkthrough
+> of all four parts, including a step-by-step explanation of how each attack
+> works. This README is the quick reference; `GUIDE.md` is the course.
+
 ```
  build  ─────────▶  attack  ─────────▶  govern  ─────────▶  detect & respond
  (Part 1)           (Part 2)           (Part 3)            (Part 4)

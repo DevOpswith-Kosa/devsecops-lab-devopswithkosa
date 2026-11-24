@@ -82,7 +82,12 @@ deploy-insecure: ## Part 1: build :dev and deploy the INSECURE manifests to dev
 	kubectl --context $(CTX) -n dev set image deploy/kubenotes app=$(IMAGE):dev
 	kubectl --context $(CTX) -n dev rollout status deploy/kubenotes --timeout=120s
 deploy: ## Part 3: deploy $(IMAGE):$(SHA) by DIGEST to ENV=dev|prod with YOUR kubeconfig
-	@digest=$$(docker inspect --format '{{index .RepoDigests 0}}' $(IMAGE):$(SHA) | cut -d@ -f2); \
+	@digest=$$(docker inspect --format '{{index .RepoDigests 0}}' $(IMAGE):$(SHA) 2>/dev/null | cut -d@ -f2) || true; \
+	if [ -z "$$digest" ]; then \
+	  echo "image $(IMAGE):$(SHA) not pushed yet -- building and pushing it first"; \
+	  docker build -t $(IMAGE):$(SHA) app && docker push -q $(IMAGE):$(SHA) >/dev/null; \
+	  digest=$$(docker inspect --format '{{index .RepoDigests 0}}' $(IMAGE):$(SHA) | cut -d@ -f2); \
+	fi; \
 	ci/render.sh $(ENV) "$$digest" $(SHA) | kubectl --context $(CTX) apply -f -; \
 	kubectl --context $(CTX) -n $(ENV) rollout status deploy/kubenotes --timeout=120s
 
