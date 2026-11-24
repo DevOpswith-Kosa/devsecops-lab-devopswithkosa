@@ -63,6 +63,7 @@ def security_headers(resp):
     resp.headers["Referrer-Policy"] = "no-referrer"
     resp.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
     resp.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+    resp.headers["Cross-Origin-Embedder-Policy"] = "require-corp"
     resp.headers["Cross-Origin-Resource-Policy"] = "same-origin"
     resp.headers["Cache-Control"] = "no-store"
     return resp

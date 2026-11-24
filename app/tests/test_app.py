@@ -58,3 +58,4 @@ def test_security_headers(client):
     assert "frame-ancestors 'none'" in h["Content-Security-Policy"]
     assert h["X-Content-Type-Options"] == "nosniff"
     assert h["X-Frame-Options"] == "DENY"
+    assert h["Cross-Origin-Embedder-Policy"] == "require-corp"
