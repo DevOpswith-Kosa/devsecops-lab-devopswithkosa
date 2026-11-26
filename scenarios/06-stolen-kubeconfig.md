@@ -9,7 +9,7 @@ forever.
 
 **Fix — change the model, not the password.**
 ```bash
-make oidc REPO=<you>/devsecops-lab     # cluster trusts GitHub OIDC
+make oidc REPO=<you>/practice-lab-<name>     # cluster trusts GitHub OIDC
 make oidc-vars
 gh secret delete KUBECONFIG_ADMIN
 ```

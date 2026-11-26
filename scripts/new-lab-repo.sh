@@ -2,13 +2,14 @@
 # Copy this track into its own folder as a fresh git repository, ready to
 # push to YOUR GitHub account. GitHub only runs workflows from the root of a
 # repository, so each learner gets a fresh repo with clean history.
-#   scripts/new-lab-repo.sh ~/devsecops-lab
+# Naming convention: practice-lab-<name>, one per person, e.g.
+#   scripts/new-lab-repo.sh ~/practice-lab-alice
 set -euo pipefail
 src="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-dest="${1:-$HOME/devsecops-lab}"
+dest="${1:-$HOME/practice-lab-$(whoami)}"
 if [[ -e "$dest" && "$(cd "$dest" && pwd)" == "$src" ]]; then
   echo "x $dest is this course folder itself. Copy it somewhere else, e.g.:" >&2
-  echo "    $0 ~/my-devsecops-lab" >&2
+  echo "    $0 ~/practice-lab-<name>" >&2
   exit 1
 fi
 [[ -e "$dest" ]] && { echo "x $dest already exists. Pick another folder or delete it." >&2; exit 1; }
@@ -25,5 +26,5 @@ echo "Created $dest (branch main)"
 echo
 echo "Next:"
 echo "  cd $dest"
-echo "  gh repo create devsecops-lab --private --source . --push"
+echo "  gh repo create $(basename "$dest") --private --source . --push"
 echo "  then open labs/README.md"

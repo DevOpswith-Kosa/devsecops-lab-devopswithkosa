@@ -7,7 +7,7 @@ real to attack and Part 3 has something real to harden.
 > **How to read these labs.** Each lab has a short *What you're doing / why*
 > note, then a command block you can copy-paste, then *what you should see*.
 > Run the commands in order, in your WSL/Linux/macOS terminal, from inside
-> `~/devsecops-lab`. If anything errors, run `make doctor` first.
+> `~/practice-lab-<name>`. If anything errors, run `make doctor` first.
 
 ---
 
@@ -58,19 +58,23 @@ and pushing it to GitHub. **Why:** GitHub only runs pipeline workflows from the
 *your* repo — so you need your own copy, not the shared course folder.
 
 ```bash
+NAME=yourname   # your first name, lowercase, e.g. alice
 git clone https://github.com/DevOpswith-Kosa/devsecops-lab.git ~/devsecops-course
-~/devsecops-course/scripts/new-lab-repo.sh ~/devsecops-lab
-cd ~/devsecops-lab
-gh repo create devsecops-lab --private --source . --push
+~/devsecops-course/scripts/new-lab-repo.sh ~/practice-lab-$NAME
+cd ~/practice-lab-$NAME
+gh repo create practice-lab-$NAME --private --source . --push
 ```
 
 - `git clone` downloads the course.
-- `new-lab-repo.sh` copies it into `~/devsecops-lab` as a fresh git repo (no
+- `NAME=...` sets your name once. Your folder and your GitHub repo are both
+  called `practice-lab-<name>` (e.g. `practice-lab-alice`), so every learner's
+  copy is clearly separate from the course repo `devsecops-lab`.
+- `new-lab-repo.sh` copies it into `~/practice-lab-<name>` as a fresh git repo (no
   course history).
 - `gh repo create … --source . --push` makes a **private** GitHub repo and
   pushes your copy to it.
 
-From now on, work in `~/devsecops-lab`.
+From now on, work in `~/practice-lab-<name>`.
 
 ---
 
@@ -145,7 +149,7 @@ your laptop — so you register a **self-hosted runner**, which runs the workflo
 Part 2's first target: a runner executes whatever a workflow tells it to.)
 
 ```bash
-make runner-install REPO=<your-gh-user>/devsecops-lab
+make runner-install REPO=<your-gh-user>/practice-lab-<name>
 make runner-start
 make status           # "self-hosted runner: ✔ running"
 ```

@@ -52,9 +52,10 @@ playbook, and a study schedule.
 
 ```bash
 # copy the course into your own fresh git repo (workflows must live at the repo root)
+NAME=yourname   # your first name, lowercase, e.g. alice
 git clone https://github.com/DevOpswith-Kosa/devsecops-lab.git ~/devsecops-course
-~/devsecops-course/scripts/new-lab-repo.sh ~/devsecops-lab
-cd ~/devsecops-lab && gh repo create devsecops-lab --private --source . --push
+~/devsecops-course/scripts/new-lab-repo.sh ~/practice-lab-$NAME
+cd ~/practice-lab-$NAME && gh repo create practice-lab-$NAME --private --source . --push
 make doctor          # checks tools, versions, Docker, RAM and ports
 make up              # local registry + kind cluster
 ```

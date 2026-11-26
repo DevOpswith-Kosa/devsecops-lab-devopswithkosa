@@ -182,7 +182,7 @@ Then in PowerShell: `wsl --shutdown`, and reopen Ubuntu. (16 GB of laptop RAM is
 comfortable; 8 GB is the tight minimum.)
 
 **4. Work inside the Linux home, NOT the Windows drive.** Clone and run under
-`~/devsecops-lab` in WSL — never under `/mnt/c/...`. Docker + kind on the
+`~/practice-lab-<name>` in WSL — never under `/mnt/c/...`. Docker + kind on the
 Windows drive is slow and hits file-permission errors. (You can still browse
 the files from Windows Explorer at `\\wsl$\Ubuntu\home\<you>` if you want.)
 
@@ -218,16 +218,18 @@ the inputs, just without the generated answer.
 ## 4. The one-time project setup (Labs 0–2)
 
 GitHub only runs pipelines from the **root** of a repository, so your first job
-is to turn this course folder into your own private repo.
+is to turn this course folder into your own private repo. Name it `practice-lab-<name>`
+(e.g. `practice-lab-alice`) so it never clashes with the course repo `devsecops-lab`.
 
 ```bash
 # 1. Get the course, then copy it into its own folder as a fresh git repo
+NAME=yourname   # your first name, lowercase, e.g. alice
 git clone https://github.com/DevOpswith-Kosa/devsecops-lab.git ~/devsecops-course
-~/devsecops-course/scripts/new-lab-repo.sh ~/devsecops-lab
-cd ~/devsecops-lab
+~/devsecops-course/scripts/new-lab-repo.sh ~/practice-lab-$NAME
+cd ~/practice-lab-$NAME
 
 # 2. Create YOUR private GitHub repo and push to it
-gh repo create devsecops-lab --private --source . --push
+gh repo create practice-lab-$NAME --private --source . --push
 
 # 3. Check the machine, then bring up the local platform (1–3 min)
 make doctor
@@ -242,7 +244,7 @@ and two namespaces (`dev`, `prod`) exist. That is your insecure baseline.
 > registry (your files and repo are untouched). A clean restart is always
 > `make down && make up`.
 
-From here on, **always work inside `~/devsecops-lab`.**
+From here on, **always work inside `~/practice-lab-<name>`.**
 
 ---
 
@@ -355,7 +357,7 @@ real to attack and Part 3 has something real to harden.
 > **How to read these labs.** Each lab has a short *What you're doing / why*
 > note, then a command block you can copy-paste, then *what you should see*.
 > Run the commands in order, in your WSL/Linux/macOS terminal, from inside
-> `~/devsecops-lab`. If anything errors, run `make doctor` first.
+> `~/practice-lab-<name>`. If anything errors, run `make doctor` first.
 
 ---
 
@@ -406,19 +408,23 @@ and pushing it to GitHub. **Why:** GitHub only runs pipeline workflows from the
 *your* repo — so you need your own copy, not the shared course folder.
 
 ```bash
+NAME=yourname   # your first name, lowercase, e.g. alice
 git clone https://github.com/DevOpswith-Kosa/devsecops-lab.git ~/devsecops-course
-~/devsecops-course/scripts/new-lab-repo.sh ~/devsecops-lab
-cd ~/devsecops-lab
-gh repo create devsecops-lab --private --source . --push
+~/devsecops-course/scripts/new-lab-repo.sh ~/practice-lab-$NAME
+cd ~/practice-lab-$NAME
+gh repo create practice-lab-$NAME --private --source . --push
 ```
 
 - `git clone` downloads the course.
-- `new-lab-repo.sh` copies it into `~/devsecops-lab` as a fresh git repo (no
+- `NAME=...` sets your name once. Your folder and your GitHub repo are both
+  called `practice-lab-<name>` (e.g. `practice-lab-alice`), so every learner's
+  copy is clearly separate from the course repo `devsecops-lab`.
+- `new-lab-repo.sh` copies it into `~/practice-lab-<name>` as a fresh git repo (no
   course history).
 - `gh repo create … --source . --push` makes a **private** GitHub repo and
   pushes your copy to it.
 
-From now on, work in `~/devsecops-lab`.
+From now on, work in `~/practice-lab-<name>`.
 
 ---
 
@@ -493,7 +499,7 @@ your laptop — so you register a **self-hosted runner**, which runs the workflo
 Part 2's first target: a runner executes whatever a workflow tells it to.)
 
 ```bash
-make runner-install REPO=<your-gh-user>/devsecops-lab
+make runner-install REPO=<your-gh-user>/practice-lab-<name>
 make runner-start
 make status           # "self-hosted runner: ✔ running"
 ```
@@ -957,7 +963,7 @@ cluster trusts GitHub's identity provider directly, so your pipeline proves who
 it is with a **short-lived token** instead of a stored admin kubeconfig.
 
 ```bash
-make oidc REPO=<your-gh-user>/devsecops-lab
+make oidc REPO=<your-gh-user>/practice-lab-<name>
 ```
 
 Read what it did (`platform/oidc.sh`, `platform/auth/auth-config.yaml.tpl`):
@@ -1339,7 +1345,7 @@ docker ps                   # is Docker even running? is the registry up?
 | `kind: command not found` | tool not on PATH | re-run the install step for that tool |
 | a scanner "fails" | **often correct!** it found a real issue | read what it reported before assuming it's broken |
 | `make scan-workflows` fails | **by design** — it flags the deliberately-insecure Part 1 workflow | expected; not a regression |
-| GitHub Actions won't run | workflows must be at the repo **root** | you ran `new-lab-repo.sh`? work inside `~/devsecops-lab`, not the subfolder |
+| GitHub Actions won't run | workflows must be at the repo **root** | you ran `new-lab-repo.sh`? work inside `~/practice-lab-<name>`, not the subfolder |
 | the AI labs do nothing | no `ANTHROPIC_API_KEY` | expected — they print the prompt instead; set the key to see answers |
 | pod stuck / weird cluster state | drifted between parts | `make down && make up` restores the baseline |
 

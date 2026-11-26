@@ -76,10 +76,11 @@ Gitleaks, ZAP, Kubescape…) runs as a container, so you never install those.
 4. Get the course and make it your own repository:
 
    ```bash
+   NAME=yourname   # your first name, lowercase, e.g. alice
    git clone https://github.com/DevOpswith-Kosa/devsecops-lab.git ~/devsecops-course
-   ~/devsecops-course/scripts/new-lab-repo.sh ~/devsecops-lab
-   cd ~/devsecops-lab
-   gh repo create devsecops-lab --private --source . --push
+   ~/devsecops-course/scripts/new-lab-repo.sh ~/practice-lab-$NAME
+   cd ~/practice-lab-$NAME
+   gh repo create practice-lab-$NAME --private --source . --push
    ```
 
    GitHub only runs workflows from the **root** of a repo, which is why you work
@@ -110,7 +111,7 @@ What you do:
    `http://localhost:8080` — the app is live.
 2. **Lab 4 — a self-hosted runner.** GitHub's cloud runners cannot reach a
    cluster that only exists on your laptop, so you register a runner *on your
-   machine*: `make runner-install REPO=<you>/devsecops-lab` then
+   machine*: `make runner-install REPO=<you>/practice-lab-<name>` then
    `make runner-start`. (That convenience is also Part 2's first target.)
 3. **Lab 5 — automate it.** You store the cluster's admin kubeconfig as a GitHub
    secret and push. The workflow `.github/workflows/10-ci-insecure.yml` runs on
