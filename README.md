@@ -60,6 +60,10 @@ make doctor          # checks tools, versions, Docker, RAM and ports
 make up              # local registry + kind cluster
 ```
 
+**Two repos, two jobs.** `devsecops-lab-devopswithkosa` is the course: read it,
+never do the labs in it. `practice-lab-<name>` (e.g. `practice-lab-alice`) is
+your own private copy where you run every lab. Each learner has their own.
+
 See **[`docs/architecture.md`](docs/architecture.md)** for the pipeline
 architecture — from the plain Part 1 flow to the full DevSecOps pipeline with
 every gate.

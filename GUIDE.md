@@ -85,6 +85,11 @@ Gitleaks, ZAP, Kubescape…) runs as a container, so you never install those.
 
    GitHub only runs workflows from the **root** of a repo, which is why you work
    in your own fresh repo, not inside the course folder.
+
+   | Repo | What it is |
+   |---|---|
+   | `devsecops-lab-devopswithkosa` | The course (shared, read-only for you) |
+   | `practice-lab-<name>` | Your own private copy; every lab runs here |
 5. Check the machine, then bring up the platform:
 
    ```bash
