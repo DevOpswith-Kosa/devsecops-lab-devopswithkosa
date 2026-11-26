@@ -9,7 +9,16 @@ ok()   { printf '  %s✔%s %s\n' "$c_ok" "$c_off" "$*"; }
 bad()  { printf '  %s✘%s %s\n' "$c_err" "$c_off" "$*"; fail=1; }
 meh()  { printf '  %s!%s %s\n' "$c_warn" "$c_off" "$*"; }
 ver_ge() { [[ "$(printf '%s\n%s\n' "$2" "$1" | sort -V | head -1)" == "$2" ]]; }  # $1 >= $2
-port_busy() { (exec 3<>"/dev/tcp/127.0.0.1/$1") 2>/dev/null; }
+# Is something listening on 127.0.0.1:<port>? Capped at 2s: on some setups
+# (e.g. WSL mirrored networking) a free port drops the probe instead of
+# refusing it, and a plain connect would hang for ~2 minutes per port.
+port_busy() {
+  if command -v timeout >/dev/null 2>&1; then
+    timeout 2 bash -c "exec 3<>/dev/tcp/127.0.0.1/$1" 2>/dev/null
+  else
+    (exec 3<>"/dev/tcp/127.0.0.1/$1") 2>/dev/null
+  fi
+}
 case "$(uname -m)" in aarch64|arm64) ARCH=arm64 ;; *) ARCH=amd64 ;; esac
 OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
 
