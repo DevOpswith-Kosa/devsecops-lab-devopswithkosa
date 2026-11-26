@@ -55,6 +55,7 @@ playbook, and a study schedule.
 NAME=yourname   # your first name, lowercase, e.g. alice
 git clone https://github.com/DevOpswith-Kosa/devsecops-lab-devopswithkosa.git ~/devsecops-course
 ~/devsecops-course/scripts/new-lab-repo.sh ~/practice-lab-$NAME
+gh auth status || gh auth login   # log in to GitHub if you aren't already
 cd ~/practice-lab-$NAME && gh repo create practice-lab-$NAME --private --source . --push
 make doctor          # checks tools, versions, Docker, RAM and ports
 make up              # local registry + kind cluster

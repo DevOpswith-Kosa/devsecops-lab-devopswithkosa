@@ -51,6 +51,10 @@ for t in docker kind kubectl git make; do
 done
 command -v gh >/dev/null 2>&1 && ok "gh installed" \
   || meh "gh not installed: needed for Lab 1 (your repo), the runner and OIDC labs"
+if command -v gh >/dev/null 2>&1; then
+  if gh auth status >/dev/null 2>&1; then ok "gh logged in to GitHub"
+  else meh "gh is not logged in to GitHub: run  gh auth login  (needed to create your practice-lab repo)"; fi
+fi
 command -v python3 >/dev/null 2>&1 && ok "python3 installed" \
   || meh "python3 not installed: needed for the Part 2 attacker box and Part 4 (detect, AI)"
 command -v cosign >/dev/null 2>&1 && ok "cosign installed" \

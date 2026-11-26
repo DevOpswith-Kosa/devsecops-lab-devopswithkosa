@@ -207,6 +207,7 @@ git clone https://github.com/DevOpswith-Kosa/devsecops-lab-devopswithkosa.git ~/
 cd ~/practice-lab-$NAME
 
 # 2. Create YOUR private GitHub repo and push to it
+gh auth status || gh auth login   # log in to GitHub if you aren't already
 gh repo create practice-lab-$NAME --private --source . --push
 
 # 3. Check the machine, then bring up the local platform (1–3 min)

@@ -80,6 +80,7 @@ Gitleaks, ZAP, Kubescape…) runs as a container, so you never install those.
    git clone https://github.com/DevOpswith-Kosa/devsecops-lab-devopswithkosa.git ~/devsecops-course
    ~/devsecops-course/scripts/new-lab-repo.sh ~/practice-lab-$NAME
    cd ~/practice-lab-$NAME
+   gh auth status || gh auth login   # log in to GitHub if you aren't already
    gh repo create practice-lab-$NAME --private --source . --push
    ```
 
