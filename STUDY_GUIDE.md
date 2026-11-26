@@ -197,12 +197,12 @@ the inputs, just without the generated answer.
 
 GitHub only runs pipelines from the **root** of a repository, so your first job
 is to turn this course folder into your own private repo. Name it `practice-lab-<name>`
-(e.g. `practice-lab-alice`) so it never clashes with the course repo `devsecops-lab`.
+(e.g. `practice-lab-alice`) so it never clashes with the course repo `devsecops-lab-devopswithkosa`.
 
 ```bash
 # 1. Get the course, then copy it into its own folder as a fresh git repo
 NAME=yourname   # your first name, lowercase, e.g. alice
-git clone https://github.com/DevOpswith-Kosa/devsecops-lab.git ~/devsecops-course
+git clone https://github.com/DevOpswith-Kosa/devsecops-lab-devopswithkosa.git ~/devsecops-course
 ~/devsecops-course/scripts/new-lab-repo.sh ~/practice-lab-$NAME
 cd ~/practice-lab-$NAME
 

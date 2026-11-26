@@ -39,7 +39,7 @@ labs/part1.md   # step 0 lists them and checks your machine
 
 # 2. Make this your own repository (GitHub won't run workflows from a subfolder)
 NAME=yourname   # your first name, lowercase, e.g. alice
-git clone https://github.com/DevOpswith-Kosa/devsecops-lab.git ~/devsecops-course
+git clone https://github.com/DevOpswith-Kosa/devsecops-lab-devopswithkosa.git ~/devsecops-course
 ~/devsecops-course/scripts/new-lab-repo.sh ~/practice-lab-$NAME
 cd ~/practice-lab-$NAME
 gh repo create practice-lab-$NAME --private --source . --push

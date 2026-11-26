@@ -59,7 +59,7 @@ and pushing it to GitHub. **Why:** GitHub only runs pipeline workflows from the
 
 ```bash
 NAME=yourname   # your first name, lowercase, e.g. alice
-git clone https://github.com/DevOpswith-Kosa/devsecops-lab.git ~/devsecops-course
+git clone https://github.com/DevOpswith-Kosa/devsecops-lab-devopswithkosa.git ~/devsecops-course
 ~/devsecops-course/scripts/new-lab-repo.sh ~/practice-lab-$NAME
 cd ~/practice-lab-$NAME
 gh repo create practice-lab-$NAME --private --source . --push
@@ -68,7 +68,7 @@ gh repo create practice-lab-$NAME --private --source . --push
 - `git clone` downloads the course.
 - `NAME=...` sets your name once. Your folder and your GitHub repo are both
   called `practice-lab-<name>` (e.g. `practice-lab-alice`), so every learner's
-  copy is clearly separate from the course repo `devsecops-lab`.
+  copy is clearly separate from the course repo `devsecops-lab-devopswithkosa`.
 - `new-lab-repo.sh` copies it into `~/practice-lab-<name>` as a fresh git repo (no
   course history).
 - `gh repo create … --source . --push` makes a **private** GitHub repo and
