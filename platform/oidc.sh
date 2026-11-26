@@ -4,7 +4,7 @@
 #   platform/oidc.sh owner/repo
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 repo="$(printf '%s' "${1:-}" | tr '[:upper:]' '[:lower:]')"
-[[ "$repo" =~ ^[a-z0-9-]+/[a-z0-9._-]+$ ]] || die "usage: make oidc REPO=<owner>/<repo>   e.g. make oidc REPO=alice/practice-lab-alice"
+[[ "$repo" =~ ^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$ ]] || die "usage: make oidc REPO=<owner>/<repo>   e.g. make oidc REPO=alice/practice-lab-alice"
 cluster_exists || die "No cluster yet. Run: make up"
 
 mkdir -p "$STATE"; echo "$repo" > "$STATE/github-repo"
