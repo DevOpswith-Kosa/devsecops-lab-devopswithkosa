@@ -63,5 +63,5 @@ echo "  prod app   http://localhost:8081   (after the first deploy)"
 if [[ -n "$(saved_repo)" ]]; then
   echo "  trusts     GitHub Actions in $(saved_repo)"
 else
-  echo "  ${c_dim}GitHub OIDC trust not configured yet (Part 2, lab 12: make oidc REPO=owner/name)${c_off}"
+  echo "  ${c_dim}GitHub OIDC trust not configured yet (Part 2, lab 12: make oidc)${c_off}"
 fi

@@ -150,7 +150,7 @@ your laptop — so you register a **self-hosted runner**, which runs the workflo
 Part 2's first target: a runner executes whatever a workflow tells it to.)
 
 ```bash
-make runner-install REPO=<your-gh-user>/practice-lab-<name>
+make runner-install   # registers the runner for THIS repo automatically
 make runner-start
 make status           # "self-hosted runner: ✔ running"
 ```

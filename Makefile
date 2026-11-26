@@ -42,8 +42,8 @@ down: ## Delete the cluster and the registry
 	@platform/down.sh
 status: ## What is running, and which version is deployed where
 	@platform/status.sh
-oidc: ## Trust GitHub Actions OIDC tokens from REPO=owner/name (Part 2)
-	@platform/oidc.sh "$(REPO)"
+oidc: ## Trust GitHub Actions OIDC tokens from this repo (or REPO=owner/name) (Part 2)
+	@platform/oidc.sh "$(or $(REPO),$(shell gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null))"
 oidc-vars: ## Store the cluster address + CA as GitHub repo variables (needs gh)
 	@repo=$$(cat .local/github-repo); \
 	gh variable set KIND_API_SERVER --repo "$$repo" --body "https://127.0.0.1:6443"; \
@@ -54,8 +54,8 @@ gatekeeper: ## Install OPA Gatekeeper + the admission policies (Part 2)
 
 ## Self-hosted GitHub Actions runner (on this machine)
 .PHONY: runner-install runner-start runner-stop runner-remove
-runner-install: ## Download + register a runner for REPO=owner/name
-	@platform/runner/runner.sh install "$(REPO)"
+runner-install: ## Download + register a runner for this repo (or REPO=owner/name)
+	@platform/runner/runner.sh install "$(or $(REPO),$(shell gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null))"
 runner-start: ## Start the runner in the background
 	@platform/runner/runner.sh start
 runner-stop: ## Stop the runner

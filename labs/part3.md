@@ -63,7 +63,7 @@ cluster trusts GitHub's identity provider directly, so your pipeline proves who
 it is with a **short-lived token** instead of a stored admin kubeconfig.
 
 ```bash
-make oidc REPO=<your-gh-user>/practice-lab-<name>
+make oidc             # trusts GitHub OIDC from THIS repo automatically
 ```
 
 Read what it did (`platform/oidc.sh`, `platform/auth/auth-config.yaml.tpl`):

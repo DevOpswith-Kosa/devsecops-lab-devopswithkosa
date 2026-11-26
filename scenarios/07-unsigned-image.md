@@ -11,7 +11,7 @@ docker push localhost:5001/kubenotes:rogue
 
 **Observe / catch it.** CD verifies the signature before deploying:
 ```bash
-ci/verify.sh localhost:5001/kubenotes:rogue <you>/practice-lab-<name>   # FAILS: not signed by your repo
+ci/verify.sh localhost:5001/kubenotes:rogue "$(gh repo view --json nameWithOwner -q .nameWithOwner)"   # FAILS: not signed by your repo
 ```
 
 **Fix.** Only deploy images your pipeline **keyless-signed** (`ci/sign.sh`,

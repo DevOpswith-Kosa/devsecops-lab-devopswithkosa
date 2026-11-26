@@ -117,7 +117,7 @@ What you do:
    `http://localhost:8080` — the app is live.
 2. **Lab 4 — a self-hosted runner.** GitHub's cloud runners cannot reach a
    cluster that only exists on your laptop, so you register a runner *on your
-   machine*: `make runner-install REPO=<you>/practice-lab-<name>` then
+   machine*: `make runner-install` (it detects your repo automatically) then
    `make runner-start`. (That convenience is also Part 2's first target.)
 3. **Lab 5 — automate it.** You store the cluster's admin kubeconfig as a GitHub
    secret and push. The workflow `.github/workflows/10-ci-insecure.yml` runs on

@@ -501,7 +501,7 @@ your laptop — so you register a **self-hosted runner**, which runs the workflo
 Part 2's first target: a runner executes whatever a workflow tells it to.)
 
 ```bash
-make runner-install REPO=<your-gh-user>/practice-lab-<name>
+make runner-install   # registers the runner for THIS repo automatically
 make runner-start
 make status           # "self-hosted runner: ✔ running"
 ```
@@ -965,7 +965,7 @@ cluster trusts GitHub's identity provider directly, so your pipeline proves who
 it is with a **short-lived token** instead of a stored admin kubeconfig.
 
 ```bash
-make oidc REPO=<your-gh-user>/practice-lab-<name>
+make oidc             # trusts GitHub OIDC from THIS repo automatically
 ```
 
 Read what it did (`platform/oidc.sh`, `platform/auth/auth-config.yaml.tpl`):

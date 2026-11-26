@@ -49,7 +49,7 @@ install)
   say "Runner registered for $repo. Start it with: make runner-start"
   ;;
 start)
-  [[ -x "$DIR/run.sh" ]] || die "not installed yet (make runner-install REPO=owner/repo)"
+  [[ -x "$DIR/run.sh" ]] || die "not installed yet (make runner-install)"
   if [[ -f "$PIDFILE" ]] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then say "already running (pid $(cat "$PIDFILE"))"; exit 0; fi
   ( cd "$DIR" && nohup ./run.sh >"$HERE/runner.log" 2>&1 & echo $! > "$PIDFILE" )
   sleep 5
